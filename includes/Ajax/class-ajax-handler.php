@@ -49,6 +49,7 @@ class AjaxHandler {
         add_action('wp_ajax_smartnotify_generate_title_from_content', [$this, 'generateTitleFromContent']);
         add_action('wp_ajax_smartnotify_generate_summary_from_content', [$this, 'generateSummaryFromContent']);
         add_action('wp_ajax_smartnotify_generate_tags_from_content', [$this, 'generateTagsFromContent']);
+        add_action('wp_ajax_smartnotify_analyze_sentiment_from_content', [$this, 'analyzeSentimentFromContent']);
         add_action('wp_ajax_smartnotify_save_news', [$this, 'saveNews']);
         add_action('wp_ajax_smartnotify_update_news', [$this, 'updateNews']);
         add_action('wp_ajax_smartnotify_get_news', [$this, 'getNews']);
@@ -389,6 +390,59 @@ class AjaxHandler {
     }
 
     /**
+     * Analyze sentiment from content
+     */
+    public function analyzeSentimentFromContent() {
+        check_ajax_referer('smartnotify_ai_nonce', 'nonce');
+
+        $content = isset($_POST['content']) ? sanitize_textarea_field($_POST['content']) : '';
+
+        if (empty($content)) {
+            wp_send_json_error(['message' => __('Contenido vacío', SMARTNOTIFY_AI_TEXT_DOMAIN)]);
+        }
+
+        try {
+            $ai_factory = $this->container->get('ai.service');
+            $service = $ai_factory->getService();
+
+            if (!$service->isAvailable()) {
+                wp_send_json_error(['message' => __('Servicio de IA no disponible', SMARTNOTIFY_AI_TEXT_DOMAIN)]);
+            }
+
+            $result = $service->analyzeSentiment($content);
+            $sentiment = $result['sentiment'] ?? 'neutral';
+            $confidence = $result['confidence'] ?? null;
+
+            // Map sentiment to colors
+            $colors = [
+                'positive' => '#10b981',
+                'neutral' => '#6b7280',
+                'negative' => '#ef4444',
+            ];
+
+            // Map sentiment to labels
+            $labels = [
+                'positive' => __('Positivo', SMARTNOTIFY_AI_TEXT_DOMAIN),
+                'neutral' => __('Neutral', SMARTNOTIFY_AI_TEXT_DOMAIN),
+                'negative' => __('Negativo', SMARTNOTIFY_AI_TEXT_DOMAIN),
+            ];
+
+            $color = $colors[$sentiment] ?? '#6b7280';
+            $label = $labels[$sentiment] ?? __('No analizado', SMARTNOTIFY_AI_TEXT_DOMAIN);
+
+            wp_send_json_success([
+                'sentiment' => $sentiment,
+                'color' => $color,
+                'label' => $label,
+                'confidence' => $confidence,
+                'message' => __('Sentimiento analizado exitosamente', SMARTNOTIFY_AI_TEXT_DOMAIN),
+            ]);
+        } catch (\Exception $e) {
+            wp_send_json_error(['message' => $e->getMessage()]);
+        }
+    }
+
+    /**
      * Save news from modal
      */
     public function saveNews() {
@@ -404,7 +458,8 @@ class AjaxHandler {
         $tags = isset($_POST['tags']) ? sanitize_text_field($_POST['tags']) : '';
         $category = isset($_POST['category']) ? intval($_POST['category']) : 0;
         $status = isset($_POST['status']) ? sanitize_text_field($_POST['status']) : 'draft';
-        $analyze_sentiment = isset($_POST['analyze_sentiment']) && $_POST['analyze_sentiment'] === '1';
+        $analyzed_sentiment = isset($_POST['analyzed_sentiment']) ? sanitize_text_field($_POST['analyzed_sentiment']) : '';
+        $analyzed_sentiment_confidence = isset($_POST['analyzed_sentiment_confidence']) ? floatval($_POST['analyzed_sentiment_confidence']) : 0;
 
         if (empty($title) || empty($content)) {
             wp_send_json_error(['message' => __('Título y contenido son requeridos', SMARTNOTIFY_AI_TEXT_DOMAIN)]);
@@ -427,7 +482,7 @@ class AjaxHandler {
 
             // Save summary
             if (!empty($summary)) {
-                update_post_meta($post_id, 'smartnotify_summary', $summary);
+                update_post_meta($post_id, '_smartnotify_summary', $summary);
             }
 
             // Save tags
@@ -441,19 +496,11 @@ class AjaxHandler {
                 wp_set_object_terms($post_id, [$category], 'smartnotify_category');
             }
 
-            // Analyze sentiment if requested
-            if ($analyze_sentiment) {
-                $ai_factory = $this->container->get('ai.service');
-                $service = $ai_factory->getService();
-
-                if ($service->isAvailable()) {
-                    try {
-                        $result = $service->analyzeSentiment($content);
-                        update_post_meta($post_id, 'smartnotify_sentiment', $result['sentiment']);
-                        update_post_meta($post_id, 'smartnotify_sentiment_confidence', $result['confidence']);
-                    } catch (\Exception $e) {
-                        error_log('Error analyzing sentiment: ' . $e->getMessage());
-                    }
+            // Save sentiment if it was analyzed in the modal
+            if (!empty($analyzed_sentiment)) {
+                update_post_meta($post_id, '_smartnotify_sentiment', $analyzed_sentiment);
+                if ($analyzed_sentiment_confidence > 0) {
+                    update_post_meta($post_id, '_smartnotify_sentiment_confidence', $analyzed_sentiment_confidence);
                 }
             }
 
@@ -490,7 +537,7 @@ class AjaxHandler {
         }
 
         // Get metadata
-        $summary = get_post_meta($post_id, 'smartnotify_summary', true);
+        $summary = get_post_meta($post_id, '_smartnotify_summary', true);
 
         // Get tags
         $tags = wp_get_object_terms($post_id, 'smartnotify_tag', ['fields' => 'names']);
@@ -526,7 +573,8 @@ class AjaxHandler {
         $tags = isset($_POST['tags']) ? sanitize_text_field($_POST['tags']) : '';
         $category = isset($_POST['category']) ? intval($_POST['category']) : 0;
         $status = isset($_POST['status']) ? sanitize_text_field($_POST['status']) : 'draft';
-        $analyze_sentiment = isset($_POST['analyze_sentiment']) && $_POST['analyze_sentiment'] === '1';
+        $analyzed_sentiment = isset($_POST['analyzed_sentiment']) ? sanitize_text_field($_POST['analyzed_sentiment']) : '';
+        $analyzed_sentiment_confidence = isset($_POST['analyzed_sentiment_confidence']) ? floatval($_POST['analyzed_sentiment_confidence']) : 0;
 
         if (empty($post_id) || empty($title) || empty($content)) {
             wp_send_json_error(['message' => __('Datos incompletos', SMARTNOTIFY_AI_TEXT_DOMAIN)]);
@@ -555,9 +603,9 @@ class AjaxHandler {
 
             // Update summary
             if (!empty($summary)) {
-                update_post_meta($post_id, 'smartnotify_summary', $summary);
+                update_post_meta($post_id, '_smartnotify_summary', $summary);
             } else {
-                delete_post_meta($post_id, 'smartnotify_summary');
+                delete_post_meta($post_id, '_smartnotify_summary');
             }
 
             // Update tags
@@ -575,19 +623,11 @@ class AjaxHandler {
                 wp_set_object_terms($post_id, [], 'smartnotify_category');
             }
 
-            // Analyze sentiment if requested
-            if ($analyze_sentiment) {
-                $ai_factory = $this->container->get('ai.service');
-                $service = $ai_factory->getService();
-
-                if ($service->isAvailable()) {
-                    try {
-                        $result = $service->analyzeSentiment($content);
-                        update_post_meta($post_id, 'smartnotify_sentiment', $result['sentiment']);
-                        update_post_meta($post_id, 'smartnotify_sentiment_confidence', $result['confidence']);
-                    } catch (\Exception $e) {
-                        error_log('Error analyzing sentiment: ' . $e->getMessage());
-                    }
+            // Save sentiment if it was analyzed in the modal
+            if (!empty($analyzed_sentiment)) {
+                update_post_meta($post_id, '_smartnotify_sentiment', $analyzed_sentiment);
+                if ($analyzed_sentiment_confidence > 0) {
+                    update_post_meta($post_id, '_smartnotify_sentiment_confidence', $analyzed_sentiment_confidence);
                 }
             }
 

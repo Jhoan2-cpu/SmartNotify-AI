@@ -618,3 +618,48 @@
 body.modal-open {
     overflow: hidden;
 }
+
+/* Sentiment Analysis Section in Modal */
+.smartnotify-sentiment-section {
+    background-color: #f9fafb;
+    padding: 16px;
+    border-radius: 6px;
+    border: 1px solid #e5e7eb;
+}
+
+.smartnotify-sentiment-section label {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-weight: 600;
+    color: #374151;
+    margin-bottom: 12px;
+}
+
+.smartnotify-sentiment-section label .dashicons {
+    color: #2271b1;
+}
+
+.smartnotify-sentiment-controls {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.smartnotify-sentiment-display {
+    margin-top: 12px;
+}
+
+.smartnotify-sentiment-display .sentiment-result {
+    animation: fadeIn 0.3s ease;
+}
+
+.smartnotify-analyze-sentiment-modal {
+    width: 100%;
+    justify-content: center;
+}
+
+.smartnotify-analyze-sentiment-modal:hover:not(:disabled) {
+    transform: translateY(-1px);
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+}

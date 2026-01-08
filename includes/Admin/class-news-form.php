@@ -294,6 +294,9 @@ class NewsForm {
                                 <?php _e('Analizar Sentimiento', SMARTNOTIFY_AI_TEXT_DOMAIN); ?>
                             </button>
                             <div id="smartnotify-sentiment-result" class="smartnotify-sentiment-display" style="display: none;"></div>
+                            <!-- Hidden fields to store analyzed sentiment -->
+                            <input type="hidden" id="analyzed_sentiment" name="analyzed_sentiment" value="">
+                            <input type="hidden" id="analyzed_sentiment_confidence" name="analyzed_sentiment_confidence" value="">
                         </div>
                         <p class="smartnotify-help-text">
                             <?php _e('Analiza el sentimiento del contenido para categorizar la noticia.', SMARTNOTIFY_AI_TEXT_DOMAIN); ?>

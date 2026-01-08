@@ -54,6 +54,7 @@
             $(document).on('click', '.smartnotify-generate-title-modal', this.generateTitleModal.bind(this));
             $(document).on('click', '.smartnotify-generate-summary-modal', this.generateSummaryModal.bind(this));
             $(document).on('click', '.smartnotify-generate-tags-modal', this.generateTagsModal.bind(this));
+            $(document).on('click', '.smartnotify-analyze-sentiment-modal', this.analyzeSentimentModal.bind(this));
 
             // Tags input handler
             $('#news_tags').on('input', this.updateTagsPreview.bind(this));
@@ -438,6 +439,9 @@
             $('#smartnotify-news-form')[0].reset();
             $('#news_tags_preview').empty();
             $('#smartnotify-form-status').hide();
+            $('#smartnotify-sentiment-result').hide().empty();
+            $('#analyzed_sentiment').val('');
+            $('#analyzed_sentiment_confidence').val('');
 
             // Reset modal to create mode
             $('#smartnotify-news-form').removeData('post-id');
@@ -579,6 +583,102 @@
         },
 
         /**
+         * Analyze sentiment in modal
+         */
+        analyzeSentimentModal: function(e) {
+            e.preventDefault();
+
+            const $button = $(e.currentTarget);
+            const content = $('#news_content').val();
+
+            if (!content.trim()) {
+                this.showModalMessage('error', 'Por favor, ingresa el contenido primero.');
+                return;
+            }
+
+            this.showLoading($button, 'Analizando...');
+
+            $.ajax({
+                url: smartnotifyAI.ajaxUrl,
+                type: 'POST',
+                data: {
+                    action: 'smartnotify_analyze_sentiment_from_content',
+                    nonce: smartnotifyAI.nonce,
+                    content: content
+                },
+                success: (response) => {
+                    if (response.success) {
+                        this.updateSentimentDisplayModal(response.data);
+                        // Store sentiment in hidden fields
+                        $('#analyzed_sentiment').val(response.data.sentiment);
+                        $('#analyzed_sentiment_confidence').val(response.data.confidence);
+                        this.showModalMessage('success', response.data.message);
+                    } else {
+                        this.showModalMessage('error', response.data.message);
+                    }
+                },
+                error: (xhr) => {
+                    this.showModalMessage('error', 'Error: ' + xhr.statusText);
+                },
+                complete: () => {
+                    this.hideLoading($button);
+                }
+            });
+        },
+
+        /**
+         * Update sentiment display in modal
+         */
+        updateSentimentDisplayModal: function(data) {
+            const $display = $('#smartnotify-sentiment-result');
+
+            // Determine confidence level text and color
+            let confidenceLevel = '';
+            let confidenceLevelColor = '#6b7280';
+
+            if (data.confidence) {
+                const confidencePercent = Math.round(data.confidence * 100);
+                if (confidencePercent >= 90) {
+                    confidenceLevel = 'Muy alta';
+                    confidenceLevelColor = '#059669';
+                } else if (confidencePercent >= 75) {
+                    confidenceLevel = 'Alta';
+                    confidenceLevelColor = '#0891b2';
+                } else if (confidencePercent >= 60) {
+                    confidenceLevel = 'Media';
+                    confidenceLevelColor = '#d97706';
+                } else {
+                    confidenceLevel = 'Baja';
+                    confidenceLevelColor = '#dc2626';
+                }
+            }
+
+            const html = `
+                <div class="sentiment-result" style="margin-top: 15px; padding: 15px; background: #f9fafb; border-radius: 8px; text-align: center;">
+                    <div class="sentiment-badge" style="display: inline-block; padding: 8px 20px; border-radius: 9999px; background-color: ${data.color}; color: white; font-size: 14px; font-weight: 600;">
+                        ${data.label}
+                    </div>
+                    ${data.confidence ? `
+                        <p style="color: #6b7280; font-size: 13px; margin: 8px 0 4px 0;">
+                            Confianza: <strong style="color: ${confidenceLevelColor};">${Math.round(data.confidence * 100)}%</strong> (${confidenceLevel})
+                        </p>
+                        <div style="margin-top: 12px; padding-top: 12px; border-top: 1px solid #e5e7eb;">
+                            <p style="color: #9ca3af; font-size: 11px; margin: 0; line-height: 1.4;">
+                                <strong>Nivel de confianza:</strong><br>
+                                <span style="color: #059669;">■</span> Muy alta (90-100%) ·
+                                <span style="color: #0891b2;">■</span> Alta (75-89%) ·
+                                <span style="color: #d97706;">■</span> Media (60-74%) ·
+                                <span style="color: #dc2626;">■</span> Baja (<60%)
+                            </p>
+                        </div>
+                    ` : ''}
+                </div>
+            `;
+
+            $display.html(html).show();
+        },
+
+        /**
          * Update tags preview
          */
         updateTagsPreview: function(e) {
@@ -653,7 +753,8 @@
                 summary: $('#news_summary').val(),
                 tags: $('#news_tags').val(),
                 category: $('#news_category').val(),
-                analyze_sentiment: $('#analyze_sentiment').is(':checked') ? '1' : '0'
+                analyzed_sentiment: $('#analyzed_sentiment').val(),
+                analyzed_sentiment_confidence: $('#analyzed_sentiment_confidence').val()
             };
 
             if (postId) {

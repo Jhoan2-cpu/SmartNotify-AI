@@ -59,6 +59,9 @@ class AdminController {
         add_action('admin_menu', [$this->settings_page, 'addMenuPage']);
         add_action('admin_init', [$this->settings_page, 'registerSettings']);
 
+        // Remove "Add New" submenu
+        add_action('admin_menu', [$this, 'removeAddNewSubmenu'], 999);
+
         // Initialize news form modal
         $this->news_form->init();
 
@@ -116,6 +119,13 @@ class AdminController {
             $query->set('meta_key', '_smartnotify_sentiment');
             $query->set('meta_value', $sentiment);
         }
+    }
+
+    /**
+     * Remove "Add New" submenu
+     */
+    public function removeAddNewSubmenu() {
+        remove_submenu_page('edit.php?post_type=smartnotify_news', 'post-new.php?post_type=smartnotify_news');
     }
 
     /**
