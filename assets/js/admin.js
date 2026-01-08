@@ -58,6 +58,9 @@
 
             // Tags input handler
             $('#news_tags').on('input', this.updateTagsPreview.bind(this));
+
+            // Listen for sentiment display event (when editing a post with existing sentiment)
+            $(document).on('smartnotify-display-sentiment', this.displayStoredSentiment.bind(this));
         },
 
         /**
@@ -676,6 +679,16 @@
             `;
 
             $display.html(html).show();
+        },
+
+        /**
+         * Display stored sentiment data (when editing)
+         */
+        displayStoredSentiment: function() {
+            const sentimentData = $('#smartnotify-news-form').data('sentiment-data');
+            if (sentimentData) {
+                this.updateSentimentDisplayModal(sentimentData);
+            }
         },
 
         /**

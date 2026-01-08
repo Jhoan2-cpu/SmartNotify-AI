@@ -130,6 +130,20 @@ class NewsForm {
                             $('#news_tags').val(response.data.tags).trigger('input');
                             $('#news_category').val(response.data.category);
 
+                            // Load sentiment if exists - store in hidden fields and data attribute
+                            if (response.data.sentiment) {
+                                $('#analyzed_sentiment').val(response.data.sentiment);
+                                $('#analyzed_sentiment_confidence').val(response.data.sentiment_confidence);
+
+                                // Store sentiment data for later display
+                                $('#smartnotify-news-form').data('sentiment-data', {
+                                    sentiment: response.data.sentiment,
+                                    confidence: response.data.sentiment_confidence,
+                                    color: response.data.sentiment_color,
+                                    label: response.data.sentiment_label
+                                });
+                            }
+
                             // Store post ID for update
                             $('#smartnotify-news-form').data('post-id', <?php echo $post_id; ?>);
 
@@ -146,6 +160,13 @@ class NewsForm {
                             // Open modal
                             $('#smartnotify-news-modal').fadeIn(300);
                             $('body').addClass('modal-open');
+
+                            // Trigger custom event to display sentiment after modal opens
+                            if (response.data.sentiment) {
+                                setTimeout(function() {
+                                    $(document).trigger('smartnotify-display-sentiment');
+                                }, 100);
+                            }
                         }
                     }
                 });

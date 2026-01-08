@@ -538,6 +538,8 @@ class AjaxHandler {
 
         // Get metadata
         $summary = get_post_meta($post_id, '_smartnotify_summary', true);
+        $sentiment = get_post_meta($post_id, '_smartnotify_sentiment', true);
+        $sentiment_confidence = get_post_meta($post_id, '_smartnotify_sentiment_confidence', true);
 
         // Get tags
         $tags = wp_get_object_terms($post_id, 'smartnotify_tag', ['fields' => 'names']);
@@ -547,12 +549,28 @@ class AjaxHandler {
         $categories = wp_get_object_terms($post_id, 'smartnotify_category', ['fields' => 'ids']);
         $category_id = !empty($categories) && is_array($categories) ? $categories[0] : 0;
 
+        // Map sentiment to colors and labels
+        $colors = [
+            'positive' => '#10b981',
+            'neutral' => '#6b7280',
+            'negative' => '#ef4444',
+        ];
+        $labels = [
+            'positive' => __('Positivo', SMARTNOTIFY_AI_TEXT_DOMAIN),
+            'neutral' => __('Neutral', SMARTNOTIFY_AI_TEXT_DOMAIN),
+            'negative' => __('Negativo', SMARTNOTIFY_AI_TEXT_DOMAIN),
+        ];
+
         wp_send_json_success([
             'title' => $post->post_title,
             'content' => $post->post_content,
             'summary' => $summary,
             'tags' => $tags_string,
             'category' => $category_id,
+            'sentiment' => $sentiment,
+            'sentiment_confidence' => $sentiment_confidence ? floatval($sentiment_confidence) : 0,
+            'sentiment_color' => !empty($sentiment) ? ($colors[$sentiment] ?? '#6b7280') : '',
+            'sentiment_label' => !empty($sentiment) ? ($labels[$sentiment] ?? '') : '',
         ]);
     }
 
