@@ -1,0 +1,11 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(php -l:*)",
+      "Bash(find:*)",
+      "Bash(test:*)",
+      "Bash(cd:*)",
+      "Bash(php:*)"
+    ]
+  }
+}

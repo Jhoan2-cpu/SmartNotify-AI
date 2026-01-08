@@ -1,0 +1,46 @@
+{
+  "name": "smartnotify-ai",
+  "version": "1.0.0",
+  "description": "Sistema avanzado de gestión de noticias con capacidades de IA para WordPress",
+  "main": "index.js",
+  "scripts": {
+    "dev": "npm run watch",
+    "build": "npm run build:css && npm run build:js",
+    "build:css": "tailwindcss -i ./assets/css/admin.css -o ./assets/css/admin.min.css --minify",
+    "build:js": "npm run minify:js",
+    "minify:js": "uglifyjs assets/js/admin.js -o assets/js/admin.min.js -c -m",
+    "watch": "npm run watch:css & npm run watch:js",
+    "watch:css": "tailwindcss -i ./assets/css/admin.css -o ./assets/css/admin.min.css --watch",
+    "watch:js": "nodemon --watch assets/js/admin.js --exec 'npm run minify:js'",
+    "lint": "eslint assets/js/**/*.js",
+    "lint:fix": "eslint assets/js/**/*.js --fix",
+    "format": "prettier --write \"assets/**/*.{js,css}\"",
+    "zip": "node scripts/create-zip.js"
+  },
+  "keywords": [
+    "wordpress",
+    "plugin",
+    "ai",
+    "openai",
+    "anthropic",
+    "news",
+    "sentiment-analysis"
+  ],
+  "author": "Tu Nombre",
+  "license": "GPL-2.0-or-later",
+  "devDependencies": {
+    "@tailwindcss/forms": "^0.5.7",
+    "autoprefixer": "^10.4.16",
+    "eslint": "^8.56.0",
+    "nodemon": "^3.0.2",
+    "postcss": "^8.4.32",
+    "prettier": "^3.1.1",
+    "tailwindcss": "^3.4.0",
+    "uglify-js": "^3.17.4"
+  },
+  "browserslist": [
+    "> 1%",
+    "last 2 versions",
+    "not dead"
+  ]
+}
