@@ -1094,7 +1094,7 @@
             if (!$dropzone.length || !$fileInput.length) return;
 
             // Click to select file
-            $dropzone.on('click', function(e) {
+            $dropzone.on('click', (e) => {
                 e.preventDefault();
                 e.stopPropagation();
                 $fileInput[0].click(); // Use native click, not jQuery
@@ -1111,16 +1111,16 @@
             });
 
             // Drag events
-            $dropzone.on('dragover', function(e) {
+            $dropzone.on('dragover', (e) => {
                 e.preventDefault();
                 e.stopPropagation();
-                $(this).addClass('dragover');
+                $dropzone.addClass('dragover');
             });
 
-            $dropzone.on('dragleave', function(e) {
+            $dropzone.on('dragleave', (e) => {
                 e.preventDefault();
                 e.stopPropagation();
-                $(this).removeClass('dragover');
+                $dropzone.removeClass('dragover');
             });
 
             $dropzone.on('drop', (e) => {
