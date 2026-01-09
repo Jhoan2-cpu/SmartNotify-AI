@@ -109,6 +109,15 @@ class Plugin {
 
         // Enqueue dashicons for frontend
         wp_enqueue_style('dashicons');
+
+        // Enqueue frontend JavaScript
+        wp_enqueue_script(
+            'smartnotify-frontend',
+            SMARTNOTIFY_AI_PLUGIN_URL . 'assets/js/frontend.js',
+            [],
+            SMARTNOTIFY_AI_VERSION,
+            true
+        );
     }
 
     /**

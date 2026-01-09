@@ -76,9 +76,10 @@
     height: 250px;
     overflow: hidden;
     background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    cursor: pointer;
 }
 
-.smartnotify-card-image a {
+.smartnotify-card-image-link {
     display: block;
     width: 100%;
     height: 100%;
@@ -164,15 +165,16 @@
     font-weight: 700;
     line-height: 1.4;
     color: #1e293b;
+    cursor: pointer;
 }
 
-.smartnotify-card-title a {
+.smartnotify-card-title-text {
     color: inherit;
     text-decoration: none;
     transition: color 0.3s ease;
 }
 
-.smartnotify-card-title a:hover {
+.smartnotify-card-title:hover .smartnotify-card-title-text {
     color: #3b82f6;
 }
 
@@ -205,7 +207,7 @@
     font-weight: 500;
 }
 
-/* Read More Link */
+/* Read More Link/Button */
 .smartnotify-card-link {
     display: inline-flex;
     align-items: center;
@@ -215,6 +217,11 @@
     color: #3b82f6;
     text-decoration: none;
     transition: all 0.3s ease;
+    background: none;
+    border: none;
+    padding: 0;
+    cursor: pointer;
+    font-family: inherit;
 }
 
 .smartnotify-card-link:hover {
@@ -340,5 +347,430 @@
     .smartnotify-news-card {
         break-inside: avoid;
         page-break-inside: avoid;
+    }
+}
+
+/* ========================================
+   MODAL STYLES
+   ======================================== */
+
+/* Modal Container */
+.smartnotify-modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 999999;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.3s ease;
+}
+
+.smartnotify-modal.smartnotify-modal-open {
+    opacity: 1;
+    pointer-events: all;
+}
+
+/* Modal Overlay */
+.smartnotify-modal-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.8);
+    backdrop-filter: blur(8px);
+    animation: smartnotify-fadeIn 0.3s ease;
+}
+
+/* Modal Container */
+.smartnotify-modal-container {
+    position: relative;
+    width: 100%;
+    max-width: 900px;
+    max-height: 90vh;
+    background: #ffffff;
+    border-radius: 20px;
+    box-shadow: 0 25px 50px rgba(0, 0, 0, 0.3);
+    overflow: hidden;
+    transform: scale(0.9) translateY(20px);
+    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    z-index: 1;
+}
+
+.smartnotify-modal-open .smartnotify-modal-container {
+    transform: scale(1) translateY(0);
+}
+
+/* Modal Header */
+.smartnotify-modal-header {
+    position: absolute;
+    top: 0;
+    right: 0;
+    z-index: 10;
+    padding: 20px;
+}
+
+.smartnotify-modal-close {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 44px;
+    height: 44px;
+    background: rgba(255, 255, 255, 0.95);
+    border: none;
+    border-radius: 50%;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.smartnotify-modal-close:hover {
+    background: #ffffff;
+    transform: rotate(90deg) scale(1.1);
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.2);
+}
+
+.smartnotify-modal-close .dashicons {
+    font-size: 24px;
+    width: 24px;
+    height: 24px;
+    color: #1e293b;
+}
+
+/* Modal Body */
+.smartnotify-modal-body {
+    overflow-y: auto;
+    max-height: 90vh;
+    scrollbar-width: thin;
+    scrollbar-color: #cbd5e1 #f1f5f9;
+}
+
+.smartnotify-modal-body::-webkit-scrollbar {
+    width: 8px;
+}
+
+.smartnotify-modal-body::-webkit-scrollbar-track {
+    background: #f1f5f9;
+}
+
+.smartnotify-modal-body::-webkit-scrollbar-thumb {
+    background: #cbd5e1;
+    border-radius: 4px;
+}
+
+.smartnotify-modal-body::-webkit-scrollbar-thumb:hover {
+    background: #94a3b8;
+}
+
+/* Modal Image */
+.smartnotify-modal-image-container {
+    position: relative;
+    width: 100%;
+    height: 400px;
+    overflow: hidden;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+}
+
+.smartnotify-modal-image {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.smartnotify-modal-sentiment {
+    position: absolute;
+    top: 24px;
+    left: 24px;
+    padding: 10px 20px;
+    border-radius: 24px;
+    font-size: 13px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    background: rgba(255, 255, 255, 0.95);
+    color: #1e293b;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    backdrop-filter: blur(10px);
+}
+
+/* Sentiment Colors in Modal */
+.smartnotify-modal-sentiment.smartnotify-sentiment-positive {
+    background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+    color: #ffffff;
+}
+
+.smartnotify-modal-sentiment.smartnotify-sentiment-negative {
+    background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+    color: #ffffff;
+}
+
+.smartnotify-modal-sentiment.smartnotify-sentiment-neutral {
+    background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+    color: #ffffff;
+}
+
+/* Modal Content Wrapper */
+.smartnotify-modal-content-wrapper {
+    padding: 40px;
+}
+
+/* Modal Categories */
+.smartnotify-modal-categories {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-bottom: 20px;
+}
+
+.smartnotify-modal-category {
+    display: inline-block;
+    padding: 8px 16px;
+    background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
+    color: #0369a1;
+    font-size: 13px;
+    font-weight: 600;
+    border-radius: 14px;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+}
+
+/* Modal Title */
+.smartnotify-modal-title {
+    margin: 0 0 16px 0;
+    font-size: 32px;
+    font-weight: 800;
+    line-height: 1.3;
+    color: #1e293b;
+}
+
+/* Modal Meta */
+.smartnotify-modal-meta {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 24px;
+    padding-bottom: 24px;
+    border-bottom: 2px solid #e2e8f0;
+}
+
+.smartnotify-modal-author {
+    font-size: 14px;
+    color: #3b82f6;
+    font-weight: 600;
+}
+
+.smartnotify-modal-separator {
+    font-size: 14px;
+    color: #cbd5e1;
+}
+
+.smartnotify-modal-date {
+    font-size: 14px;
+    color: #64748b;
+    font-weight: 500;
+}
+
+/* Modal Summary */
+.smartnotify-modal-summary {
+    margin-bottom: 24px;
+    padding: 20px;
+    background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+    border-left: 4px solid #3b82f6;
+    border-radius: 8px;
+}
+
+.smartnotify-modal-summary p {
+    margin: 0;
+    font-size: 17px;
+    line-height: 1.7;
+    color: #1e293b;
+    font-weight: 500;
+    font-style: italic;
+}
+
+/* Modal Content */
+.smartnotify-modal-content {
+    font-size: 16px;
+    line-height: 1.8;
+    color: #475569;
+}
+
+.smartnotify-modal-content p {
+    margin: 0 0 16px 0;
+}
+
+.smartnotify-modal-content p:last-child {
+    margin-bottom: 0;
+}
+
+.smartnotify-modal-content h1,
+.smartnotify-modal-content h2,
+.smartnotify-modal-content h3,
+.smartnotify-modal-content h4,
+.smartnotify-modal-content h5,
+.smartnotify-modal-content h6 {
+    margin: 24px 0 12px 0;
+    color: #1e293b;
+    font-weight: 700;
+}
+
+.smartnotify-modal-content ul,
+.smartnotify-modal-content ol {
+    margin: 16px 0;
+    padding-left: 24px;
+}
+
+.smartnotify-modal-content li {
+    margin-bottom: 8px;
+}
+
+.smartnotify-modal-content a {
+    color: #3b82f6;
+    text-decoration: underline;
+    transition: color 0.3s ease;
+}
+
+.smartnotify-modal-content a:hover {
+    color: #2563eb;
+}
+
+.smartnotify-modal-content img {
+    max-width: 100%;
+    height: auto;
+    border-radius: 12px;
+    margin: 20px 0;
+}
+
+/* Modal Tags */
+.smartnotify-modal-tags {
+    margin-top: 32px;
+    padding-top: 24px;
+    border-top: 2px solid #e2e8f0;
+}
+
+.smartnotify-modal-tags-title {
+    font-size: 13px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: #64748b;
+    margin-bottom: 12px;
+}
+
+.smartnotify-modal-tag {
+    display: inline-block;
+    padding: 6px 14px;
+    margin: 4px 6px 4px 0;
+    background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
+    color: #1e40af;
+    font-size: 13px;
+    font-weight: 600;
+    border-radius: 16px;
+    transition: all 0.3s ease;
+}
+
+.smartnotify-modal-tag:hover {
+    background: linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%);
+    transform: translateY(-1px);
+    box-shadow: 0 2px 8px rgba(59, 130, 246, 0.2);
+}
+
+/* Responsive Modal */
+@media (max-width: 768px) {
+    .smartnotify-modal {
+        padding: 0;
+        align-items: flex-end;
+    }
+
+    .smartnotify-modal-container {
+        max-width: 100%;
+        max-height: 95vh;
+        border-radius: 20px 20px 0 0;
+    }
+
+    .smartnotify-modal-image-container {
+        height: 250px;
+    }
+
+    .smartnotify-modal-content-wrapper {
+        padding: 24px;
+    }
+
+    .smartnotify-modal-title {
+        font-size: 24px;
+    }
+
+    .smartnotify-modal-content {
+        font-size: 15px;
+    }
+
+    .smartnotify-modal-header {
+        padding: 16px;
+    }
+
+    .smartnotify-modal-close {
+        width: 40px;
+        height: 40px;
+    }
+}
+
+/* Prevent body scroll when modal is open */
+body.smartnotify-modal-open {
+    overflow: hidden;
+}
+
+/* Keyboard Focus */
+.smartnotify-modal-close:focus {
+    outline: 2px solid #3b82f6;
+    outline-offset: 2px;
+}
+
+/* Dark Mode Support for Modal */
+@media (prefers-color-scheme: dark) {
+    .smartnotify-modal-container {
+        background: #1e293b;
+    }
+
+    .smartnotify-modal-title {
+        color: #f8fafc;
+    }
+
+    .smartnotify-modal-content {
+        color: #cbd5e1;
+    }
+
+    .smartnotify-modal-content h1,
+    .smartnotify-modal-content h2,
+    .smartnotify-modal-content h3,
+    .smartnotify-modal-content h4,
+    .smartnotify-modal-content h5,
+    .smartnotify-modal-content h6 {
+        color: #f8fafc;
+    }
+
+    .smartnotify-modal-meta {
+        border-bottom-color: #334155;
+    }
+
+    .smartnotify-modal-date {
+        color: #94a3b8;
+    }
+
+    .smartnotify-modal-close {
+        background: rgba(30, 41, 59, 0.95);
+    }
+
+    .smartnotify-modal-close:hover {
+        background: #1e293b;
+    }
+
+    .smartnotify-modal-close .dashicons {
+        color: #f8fafc;
     }
 }
