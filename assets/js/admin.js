@@ -550,10 +550,14 @@
             $('#analyzed_sentiment_confidence').val('');
             $('#featured_image_id').val('');
             $('#image_prompt').val('');
+
+            // Reset image section
             $('#smartnotify-image-preview img').attr('src', '');
             $('#smartnotify-image-preview').hide();
             $('#smartnotify-image-loading').hide();
             $('#smartnotify-dropzone').show();
+            $('.smartnotify-ai-generation-section').show();
+            $('.smartnotify-library-upload').show();
 
             // Reset modal to create mode
             $('#smartnotify-news-form').removeData('post-id');
@@ -1015,6 +1019,8 @@
             $('#smartnotify-dropzone').hide();
             $('#smartnotify-image-preview').hide();
             $('#smartnotify-image-loading').show();
+            $('.smartnotify-ai-generation-section').hide();
+            $('.smartnotify-library-upload').hide();
 
             $.ajax({
                 url: smartnotifyAI.ajaxUrl,
@@ -1035,6 +1041,8 @@
                         $('#image_prompt').val('');
                     } else {
                         $('#smartnotify-dropzone').show();
+                        $('.smartnotify-ai-generation-section').show();
+                        $('.smartnotify-library-upload').show();
                         this.showModalMessage('error', response.data.message);
                     }
                 },
@@ -1042,6 +1050,8 @@
                     $generateBtn.prop('disabled', false);
                     $('#smartnotify-image-loading').hide();
                     $('#smartnotify-dropzone').show();
+                    $('.smartnotify-ai-generation-section').show();
+                    $('.smartnotify-library-upload').show();
                     this.showModalMessage('error', 'Error: ' + xhr.statusText);
                 }
             });
@@ -1055,6 +1065,8 @@
             $('#smartnotify-image-preview img').attr('src', imageUrl);
             $('#smartnotify-image-preview').show();
             $('#smartnotify-dropzone').hide();
+            $('.smartnotify-ai-generation-section').hide();
+            $('.smartnotify-library-upload').hide();
         },
 
         /**
@@ -1068,6 +1080,8 @@
             $('#smartnotify-image-preview img').attr('src', '');
             $('#smartnotify-image-preview').hide();
             $('#smartnotify-dropzone').show();
+            $('.smartnotify-ai-generation-section').show();
+            $('.smartnotify-library-upload').show();
         },
 
         /**
@@ -1080,8 +1094,10 @@
             if (!$dropzone.length || !$fileInput.length) return;
 
             // Click to select file
-            $dropzone.on('click', function() {
-                $fileInput.click();
+            $dropzone.on('click', function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                $fileInput[0].click(); // Use native click, not jQuery
             });
 
             // File input change
@@ -1089,6 +1105,8 @@
                 const files = e.target.files;
                 if (files && files.length > 0) {
                     this.handleFileUpload(files[0]);
+                    // Reset file input
+                    e.target.value = '';
                 }
             });
 
@@ -1136,38 +1154,59 @@
             // Show loading
             $('#smartnotify-dropzone').hide();
             $('#smartnotify-image-loading').show();
+            $('.smartnotify-ai-generation-section').hide();
+            $('.smartnotify-library-upload').hide();
 
-            // Create form data
-            const formData = new FormData();
-            formData.append('action', 'upload-attachment');
-            formData.append('name', file.name);
-            formData.append('async-upload', file);
-            formData.append('_wpnonce', smartnotifyAI.nonce);
+            // Convert file to base64
+            const reader = new FileReader();
 
-            // Upload via WordPress Media API
-            $.ajax({
-                url: smartnotifyAI.ajaxUrl,
-                type: 'POST',
-                data: formData,
-                processData: false,
-                contentType: false,
-                success: (response) => {
-                    $('#smartnotify-image-loading').hide();
+            reader.onload = (e) => {
+                const base64Data = e.target.result;
 
-                    if (response.success && response.data && response.data.id) {
-                        this.setFeaturedImage(response.data.id, response.data.url);
-                        this.showModalMessage('success', 'Imagen subida exitosamente');
-                    } else {
+                // Upload via custom AJAX handler
+                $.ajax({
+                    url: smartnotifyAI.ajaxUrl,
+                    type: 'POST',
+                    data: {
+                        action: 'smartnotify_upload_image',
+                        nonce: smartnotifyAI.nonce,
+                        image_data: base64Data,
+                        filename: file.name
+                    },
+                    success: (response) => {
+                        $('#smartnotify-image-loading').hide();
+
+                        if (response.success && response.data && response.data.attachment_id) {
+                            this.setFeaturedImage(response.data.attachment_id, response.data.url);
+                            this.showModalMessage('success', 'Imagen subida exitosamente');
+                        } else {
+                            $('#smartnotify-dropzone').show();
+                            $('.smartnotify-ai-generation-section').show();
+                            $('.smartnotify-library-upload').show();
+                            const errorMsg = response.data && response.data.message ? response.data.message : 'Error al subir la imagen';
+                            this.showModalMessage('error', errorMsg);
+                        }
+                    },
+                    error: (xhr, status, error) => {
+                        $('#smartnotify-image-loading').hide();
                         $('#smartnotify-dropzone').show();
+                        $('.smartnotify-ai-generation-section').show();
+                        $('.smartnotify-library-upload').show();
+                        console.error('Upload error:', error, xhr.responseText);
                         this.showModalMessage('error', 'Error al subir la imagen. Por favor intenta de nuevo.');
                     }
-                },
-                error: () => {
-                    $('#smartnotify-image-loading').hide();
-                    $('#smartnotify-dropzone').show();
-                    this.showModalMessage('error', 'Error al subir la imagen. Por favor intenta de nuevo.');
-                }
-            });
+                });
+            };
+
+            reader.onerror = () => {
+                $('#smartnotify-image-loading').hide();
+                $('#smartnotify-dropzone').show();
+                $('.smartnotify-ai-generation-section').show();
+                $('.smartnotify-library-upload').show();
+                this.showModalMessage('error', 'Error al leer el archivo');
+            };
+
+            reader.readAsDataURL(file);
         }
     };
 

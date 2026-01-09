@@ -36,20 +36,23 @@ class Assets {
             '3.4.0'
         );
 
-        // Enqueue custom admin CSS
+        // Enqueue custom admin CSS (force reload with timestamp)
         wp_enqueue_style(
             'smartnotify-admin',
             SMARTNOTIFY_AI_PLUGIN_URL . 'assets/css/admin.css',
             ['smartnotify-tailwind'],
-            SMARTNOTIFY_AI_VERSION
+            SMARTNOTIFY_AI_VERSION . '.' . time()
         );
 
-        // Enqueue admin JavaScript
+        // Enqueue WordPress media library
+        wp_enqueue_media();
+
+        // Enqueue admin JavaScript (force reload with timestamp)
         wp_enqueue_script(
             'smartnotify-admin',
             SMARTNOTIFY_AI_PLUGIN_URL . 'assets/js/admin.js',
-            ['jquery', 'wp-util'],
-            SMARTNOTIFY_AI_VERSION,
+            ['jquery', 'wp-util', 'media-upload', 'media-views'],
+            SMARTNOTIFY_AI_VERSION . '.' . time(),
             true
         );
 

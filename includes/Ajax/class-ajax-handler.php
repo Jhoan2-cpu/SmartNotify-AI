@@ -57,6 +57,9 @@ class AjaxHandler {
         // Image generation handlers
         add_action('wp_ajax_smartnotify_generate_image', [$this, 'generateImage']);
         add_action('wp_ajax_smartnotify_test_image_api', [$this, 'testImageApiConnection']);
+
+        // Image upload handler
+        add_action('wp_ajax_smartnotify_upload_image', [$this, 'uploadImage']);
     }
 
     /**
@@ -972,6 +975,91 @@ class AjaxHandler {
                 throw new \Exception(__('Proveedor de imágenes no configurado', SMARTNOTIFY_AI_TEXT_DOMAIN));
             }
         } catch (\Exception $e) {
+            wp_send_json_error(['message' => $e->getMessage()]);
+        }
+    }
+
+    /**
+     * Upload image via AJAX
+     */
+    public function uploadImage() {
+        check_ajax_referer('smartnotify_ai_nonce', 'nonce');
+
+        if (!current_user_can('upload_files')) {
+            wp_send_json_error(['message' => __('Permisos insuficientes para subir archivos', SMARTNOTIFY_AI_TEXT_DOMAIN)]);
+            return;
+        }
+
+        try {
+            if (empty($_POST['image_data'])) {
+                throw new \Exception(__('No se proporcionaron datos de imagen', SMARTNOTIFY_AI_TEXT_DOMAIN));
+            }
+
+            if (empty($_POST['filename'])) {
+                throw new \Exception(__('No se proporcionó nombre de archivo', SMARTNOTIFY_AI_TEXT_DOMAIN));
+            }
+
+            $image_data = sanitize_text_field($_POST['image_data']);
+            $filename = sanitize_file_name($_POST['filename']);
+
+            // Decode base64 image
+            if (preg_match('/^data:image\/(\w+);base64,/', $image_data, $matches)) {
+                $image_type = $matches[1];
+                $image_data = substr($image_data, strpos($image_data, ',') + 1);
+                $image_data = base64_decode($image_data);
+
+                if ($image_data === false) {
+                    throw new \Exception(__('Error al decodificar la imagen', SMARTNOTIFY_AI_TEXT_DOMAIN));
+                }
+            } else {
+                throw new \Exception(__('Formato de imagen inválido', SMARTNOTIFY_AI_TEXT_DOMAIN));
+            }
+
+            // Prepare filename
+            $upload_dir = wp_upload_dir();
+            $file_ext = pathinfo($filename, PATHINFO_EXTENSION);
+            $new_filename = 'smartnotify-' . time() . '-' . wp_generate_password(8, false) . '.' . $file_ext;
+            $file_path = $upload_dir['path'] . '/' . $new_filename;
+
+            // Save file
+            require_once(ABSPATH . 'wp-admin/includes/image.php');
+            require_once(ABSPATH . 'wp-admin/includes/file.php');
+            require_once(ABSPATH . 'wp-admin/includes/media.php');
+
+            $result = file_put_contents($file_path, $image_data);
+
+            if ($result === false) {
+                throw new \Exception(__('Error al guardar el archivo', SMARTNOTIFY_AI_TEXT_DOMAIN));
+            }
+
+            // Create attachment
+            $file_type = wp_check_filetype($new_filename, null);
+            $attachment = [
+                'post_mime_type' => $file_type['type'],
+                'post_title' => preg_replace('/\.[^.]+$/', '', $new_filename),
+                'post_content' => '',
+                'post_status' => 'inherit'
+            ];
+
+            $attachment_id = wp_insert_attachment($attachment, $file_path);
+
+            if (is_wp_error($attachment_id)) {
+                @unlink($file_path);
+                throw new \Exception(__('Error al crear el attachment: ', SMARTNOTIFY_AI_TEXT_DOMAIN) . $attachment_id->get_error_message());
+            }
+
+            // Generate metadata
+            $attachment_data = wp_generate_attachment_metadata($attachment_id, $file_path);
+            wp_update_attachment_metadata($attachment_id, $attachment_data);
+
+            wp_send_json_success([
+                'attachment_id' => $attachment_id,
+                'url' => wp_get_attachment_url($attachment_id),
+                'message' => __('Imagen subida exitosamente', SMARTNOTIFY_AI_TEXT_DOMAIN)
+            ]);
+
+        } catch (\Exception $e) {
+            error_log('SmartNotify Upload Image Error: ' . $e->getMessage());
             wp_send_json_error(['message' => $e->getMessage()]);
         }
     }
