@@ -159,6 +159,11 @@ final class SmartNotify_AI {
         $this->container->singleton('ajax', function($c) {
             return new \SmartNotifyAI\Ajax\AjaxHandler($c);
         });
+
+        // Register frontend shortcode
+        $this->container->singleton('frontend.shortcode', function() {
+            return new \SmartNotifyAI\Frontend\NewsShortcode();
+        });
     }
 
     /**

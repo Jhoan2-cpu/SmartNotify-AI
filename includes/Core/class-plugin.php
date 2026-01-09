@@ -54,6 +54,12 @@ class Plugin {
         // Initialize AJAX handlers
         $this->container->get('ajax')->init();
 
+        // Initialize frontend shortcode
+        add_action('init', [$this, 'register_shortcode']);
+
+        // Enqueue frontend styles
+        add_action('wp_enqueue_scripts', [$this, 'register_frontend_assets']);
+
         // Add custom columns to post list
         add_filter('manage_smartnotify_news_posts_columns', [$this, 'add_custom_columns']);
         add_action('manage_smartnotify_news_posts_custom_column', [$this, 'render_custom_columns'], 10, 2);
@@ -81,6 +87,28 @@ class Plugin {
      */
     public function register_assets($hook) {
         $this->container->get('assets')->enqueue($hook);
+    }
+
+    /**
+     * Register frontend shortcode
+     */
+    public function register_shortcode() {
+        $this->container->get('frontend.shortcode')->register();
+    }
+
+    /**
+     * Register frontend assets
+     */
+    public function register_frontend_assets() {
+        wp_enqueue_style(
+            'smartnotify-frontend',
+            SMARTNOTIFY_AI_PLUGIN_URL . 'assets/css/frontend.css',
+            [],
+            SMARTNOTIFY_AI_VERSION
+        );
+
+        // Enqueue dashicons for frontend
+        wp_enqueue_style('dashicons');
     }
 
     /**
