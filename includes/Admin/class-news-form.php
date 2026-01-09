@@ -144,6 +144,13 @@ class NewsForm {
                                 });
                             }
 
+                            // Load featured image if exists
+                            if (response.data.featured_image_id && response.data.featured_image_url) {
+                                $('#featured_image_id').val(response.data.featured_image_id);
+                                $('#smartnotify-image-preview img').attr('src', response.data.featured_image_url);
+                                $('#smartnotify-image-preview').show();
+                            }
+
                             // Store post ID for update
                             $('#smartnotify-news-form').data('post-id', <?php echo $post_id; ?>);
 
@@ -301,6 +308,77 @@ class NewsForm {
                             }
                             ?>
                         </select>
+                    </div>
+
+                    <!-- Featured Image Section -->
+                    <div class="smartnotify-form-group smartnotify-image-section">
+                        <label>
+                            <span class="dashicons dashicons-format-image"></span>
+                            <?php _e('Imagen Destacada', SMARTNOTIFY_AI_TEXT_DOMAIN); ?>
+                        </label>
+
+                        <!-- Drag & Drop Zone -->
+                        <div id="smartnotify-dropzone" class="smartnotify-dropzone">
+                            <div class="smartnotify-dropzone-content">
+                                <span class="dashicons dashicons-cloud-upload"></span>
+                                <p class="smartnotify-dropzone-text"><?php _e('Arrastra una imagen aquí o haz clic para seleccionar', SMARTNOTIFY_AI_TEXT_DOMAIN); ?></p>
+                                <p class="smartnotify-dropzone-subtext"><?php _e('Formatos: JPG, PNG, GIF (máx. 10MB)', SMARTNOTIFY_AI_TEXT_DOMAIN); ?></p>
+                            </div>
+                            <input type="file" id="smartnotify-file-input" accept="image/*" style="display: none;">
+                        </div>
+
+                        <!-- Image Preview -->
+                        <div id="smartnotify-image-preview" class="smartnotify-image-preview" style="display: none;">
+                            <img src="" alt="Preview" />
+                            <button type="button" class="smartnotify-remove-image" title="<?php esc_attr_e('Eliminar imagen', SMARTNOTIFY_AI_TEXT_DOMAIN); ?>">
+                                <span class="dashicons dashicons-no-alt"></span>
+                            </button>
+                        </div>
+
+                        <!-- Loading Spinner for Image Generation -->
+                        <div id="smartnotify-image-loading" class="smartnotify-image-loading" style="display: none;">
+                            <div class="smartnotify-spinner"></div>
+                            <p><?php _e('Generando imagen con IA...', SMARTNOTIFY_AI_TEXT_DOMAIN); ?></p>
+                            <p class="smartnotify-loading-subtext"><?php _e('Esto puede tomar algunos segundos', SMARTNOTIFY_AI_TEXT_DOMAIN); ?></p>
+                        </div>
+
+                        <!-- Image Controls -->
+                        <div class="smartnotify-image-controls">
+                            <button type="button" class="smartnotify-btn smartnotify-btn-outline smartnotify-upload-image">
+                                <span class="dashicons dashicons-upload"></span>
+                                <?php _e('Subir desde Biblioteca', SMARTNOTIFY_AI_TEXT_DOMAIN); ?>
+                            </button>
+
+                            <?php
+                            $image_provider = get_option('smartnotify_image_provider', 'dalle');
+                            if ($image_provider !== 'none'):
+                            ?>
+                            <div class="smartnotify-ai-image-group">
+                                <input
+                                    type="text"
+                                    id="image_prompt"
+                                    name="image_prompt"
+                                    class="smartnotify-input"
+                                    placeholder="<?php esc_attr_e('Describe la imagen que deseas generar...', SMARTNOTIFY_AI_TEXT_DOMAIN); ?>"
+                                />
+                                <button type="button" class="smartnotify-btn smartnotify-btn-outline smartnotify-generate-image-prompt">
+                                    <span class="dashicons dashicons-lightbulb"></span>
+                                    <?php _e('Generar desde Prompt', SMARTNOTIFY_AI_TEXT_DOMAIN); ?>
+                                </button>
+                                <button type="button" class="smartnotify-btn smartnotify-btn-outline smartnotify-generate-image-content">
+                                    <span class="dashicons dashicons-admin-page"></span>
+                                    <?php _e('Generar desde Contenido', SMARTNOTIFY_AI_TEXT_DOMAIN); ?>
+                                </button>
+                            </div>
+                            <?php endif; ?>
+
+                            <!-- Hidden field to store attachment ID -->
+                            <input type="hidden" id="featured_image_id" name="featured_image_id" value="">
+                        </div>
+
+                        <p class="smartnotify-help-text">
+                            <?php _e('Arrastra y suelta una imagen, súbela desde tu biblioteca o genera una con IA.', SMARTNOTIFY_AI_TEXT_DOMAIN); ?>
+                        </p>
                     </div>
 
                     <!-- Sentiment Analysis Section -->

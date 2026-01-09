@@ -663,3 +663,189 @@ body.modal-open {
     transform: translateY(-1px);
     box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
 }
+
+/* Image Section Styles */
+.smartnotify-image-section label {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-weight: 600;
+    color: #374151;
+    margin-bottom: 12px;
+}
+
+.smartnotify-image-section label .dashicons {
+    color: #2271b1;
+}
+
+.smartnotify-image-preview {
+    position: relative;
+    margin-bottom: 16px;
+    border-radius: 8px;
+    overflow: hidden;
+    background: #f9fafb;
+    border: 2px solid #e5e7eb;
+}
+
+.smartnotify-image-preview img {
+    width: 100%;
+    height: auto;
+    display: block;
+    max-height: 300px;
+    object-fit: cover;
+}
+
+.smartnotify-remove-image {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    background: rgba(239, 68, 68, 0.9);
+    color: white;
+    border: none;
+    border-radius: 50%;
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.smartnotify-remove-image:hover {
+    background: rgba(220, 38, 38, 1);
+    transform: scale(1.1);
+}
+
+.smartnotify-remove-image .dashicons {
+    font-size: 18px;
+    width: 18px;
+    height: 18px;
+}
+
+.smartnotify-image-controls {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.smartnotify-ai-image-group {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding: 16px;
+    background: #f9fafb;
+    border-radius: 8px;
+    border: 1px solid #e5e7eb;
+}
+
+.smartnotify-ai-image-group input[type="text"] {
+    width: 100%;
+}
+
+.smartnotify-ai-image-group button {
+    width: 100%;
+    justify-content: center;
+}
+
+.smartnotify-upload-image {
+    width: 100%;
+    justify-content: center;
+}
+
+/* Drag & Drop Zone */
+.smartnotify-dropzone {
+    border: 2px dashed #d1d5db;
+    border-radius: 12px;
+    padding: 40px 20px;
+    text-align: center;
+    background: #f9fafb;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    margin-bottom: 16px;
+}
+
+.smartnotify-dropzone:hover {
+    border-color: #3b82f6;
+    background: #eff6ff;
+}
+
+.smartnotify-dropzone.dragover {
+    border-color: #3b82f6;
+    background: #dbeafe;
+    transform: scale(1.02);
+}
+
+.smartnotify-dropzone-content {
+    pointer-events: none;
+}
+
+.smartnotify-dropzone .dashicons {
+    font-size: 48px;
+    width: 48px;
+    height: 48px;
+    color: #9ca3af;
+    margin-bottom: 12px;
+}
+
+.smartnotify-dropzone-text {
+    font-size: 16px;
+    font-weight: 600;
+    color: #374151;
+    margin: 0 0 8px 0;
+}
+
+.smartnotify-dropzone-subtext {
+    font-size: 13px;
+    color: #6b7280;
+    margin: 0;
+}
+
+/* Image Loading Animation */
+.smartnotify-image-loading {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 60px 20px;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    border-radius: 12px;
+    margin-bottom: 16px;
+    animation: fadeIn 0.3s ease;
+}
+
+.smartnotify-image-loading p {
+    color: white;
+    font-size: 16px;
+    font-weight: 600;
+    margin: 16px 0 0 0;
+}
+
+.smartnotify-image-loading .smartnotify-loading-subtext {
+    font-size: 13px;
+    font-weight: 400;
+    opacity: 0.9;
+    margin: 8px 0 0 0;
+}
+
+/* Spinner Animation */
+.smartnotify-spinner {
+    width: 50px;
+    height: 50px;
+    border: 4px solid rgba(255, 255, 255, 0.3);
+    border-top-color: white;
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+/* Hide dropzone when image is shown */
+.smartnotify-image-preview:not([style*="display: none"]) ~ .smartnotify-dropzone,
+.smartnotify-image-loading:not([style*="display: none"]) ~ .smartnotify-dropzone {
+    display: none;
+}

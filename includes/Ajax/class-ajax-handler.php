@@ -53,6 +53,10 @@ class AjaxHandler {
         add_action('wp_ajax_smartnotify_save_news', [$this, 'saveNews']);
         add_action('wp_ajax_smartnotify_update_news', [$this, 'updateNews']);
         add_action('wp_ajax_smartnotify_get_news', [$this, 'getNews']);
+
+        // Image generation handlers
+        add_action('wp_ajax_smartnotify_generate_image', [$this, 'generateImage']);
+        add_action('wp_ajax_smartnotify_test_image_api', [$this, 'testImageApiConnection']);
     }
 
     /**
@@ -460,6 +464,7 @@ class AjaxHandler {
         $status = isset($_POST['status']) ? sanitize_text_field($_POST['status']) : 'draft';
         $analyzed_sentiment = isset($_POST['analyzed_sentiment']) ? sanitize_text_field($_POST['analyzed_sentiment']) : '';
         $analyzed_sentiment_confidence = isset($_POST['analyzed_sentiment_confidence']) ? floatval($_POST['analyzed_sentiment_confidence']) : 0;
+        $featured_image_id = isset($_POST['featured_image_id']) ? intval($_POST['featured_image_id']) : 0;
 
         if (empty($title) || empty($content)) {
             wp_send_json_error(['message' => __('Título y contenido son requeridos', SMARTNOTIFY_AI_TEXT_DOMAIN)]);
@@ -502,6 +507,11 @@ class AjaxHandler {
                 if ($analyzed_sentiment_confidence > 0) {
                     update_post_meta($post_id, '_smartnotify_sentiment_confidence', $analyzed_sentiment_confidence);
                 }
+            }
+
+            // Set featured image
+            if ($featured_image_id > 0) {
+                set_post_thumbnail($post_id, $featured_image_id);
             }
 
             $message = $status === 'publish'
@@ -549,6 +559,10 @@ class AjaxHandler {
         $categories = wp_get_object_terms($post_id, 'smartnotify_category', ['fields' => 'ids']);
         $category_id = !empty($categories) && is_array($categories) ? $categories[0] : 0;
 
+        // Get featured image
+        $featured_image_id = get_post_thumbnail_id($post_id);
+        $featured_image_url = $featured_image_id ? wp_get_attachment_url($featured_image_id) : '';
+
         // Map sentiment to colors and labels
         $colors = [
             'positive' => '#10b981',
@@ -571,6 +585,8 @@ class AjaxHandler {
             'sentiment_confidence' => $sentiment_confidence ? floatval($sentiment_confidence) : 0,
             'sentiment_color' => !empty($sentiment) ? ($colors[$sentiment] ?? '#6b7280') : '',
             'sentiment_label' => !empty($sentiment) ? ($labels[$sentiment] ?? '') : '',
+            'featured_image_id' => $featured_image_id,
+            'featured_image_url' => $featured_image_url,
         ]);
     }
 
@@ -593,6 +609,7 @@ class AjaxHandler {
         $status = isset($_POST['status']) ? sanitize_text_field($_POST['status']) : 'draft';
         $analyzed_sentiment = isset($_POST['analyzed_sentiment']) ? sanitize_text_field($_POST['analyzed_sentiment']) : '';
         $analyzed_sentiment_confidence = isset($_POST['analyzed_sentiment_confidence']) ? floatval($_POST['analyzed_sentiment_confidence']) : 0;
+        $featured_image_id = isset($_POST['featured_image_id']) ? intval($_POST['featured_image_id']) : 0;
 
         if (empty($post_id) || empty($title) || empty($content)) {
             wp_send_json_error(['message' => __('Datos incompletos', SMARTNOTIFY_AI_TEXT_DOMAIN)]);
@@ -649,10 +666,311 @@ class AjaxHandler {
                 }
             }
 
+            // Update featured image
+            if ($featured_image_id > 0) {
+                set_post_thumbnail($post_id, $featured_image_id);
+            } else {
+                // If 0, remove featured image
+                delete_post_thumbnail($post_id);
+            }
+
             wp_send_json_success([
                 'message' => __('Noticia actualizada exitosamente', SMARTNOTIFY_AI_TEXT_DOMAIN),
                 'post_id' => $post_id,
             ]);
+        } catch (\Exception $e) {
+            wp_send_json_error(['message' => $e->getMessage()]);
+        }
+    }
+
+    /**
+     * Generate image via AJAX
+     */
+    public function generateImage() {
+        check_ajax_referer('smartnotify_ai_nonce', 'nonce');
+
+        if (!current_user_can('edit_posts')) {
+            wp_send_json_error(['message' => __('Permisos insuficientes', SMARTNOTIFY_AI_TEXT_DOMAIN)]);
+        }
+
+        try {
+            $prompt = isset($_POST['prompt']) ? sanitize_textarea_field($_POST['prompt']) : '';
+
+            if (empty($prompt)) {
+                throw new \Exception(__('El prompt no puede estar vacío', SMARTNOTIFY_AI_TEXT_DOMAIN));
+            }
+
+            // Get image service
+            $image_provider = get_option('smartnotify_image_provider', 'huggingface');
+
+            if ($image_provider === 'none') {
+                throw new \Exception(__('La generación de imágenes está deshabilitada', SMARTNOTIFY_AI_TEXT_DOMAIN));
+            }
+
+            $api_key = get_option('smartnotify_image_api_key', '');
+
+            if (empty($api_key)) {
+                throw new \Exception(__('No se ha configurado la API Key para generación de imágenes', SMARTNOTIFY_AI_TEXT_DOMAIN));
+            }
+
+            // Create image service
+            $image_service = null;
+
+            if ($image_provider === 'huggingface') {
+                $image_service = new \SmartNotifyAI\Services\Image\HuggingfaceService($api_key);
+            } elseif ($image_provider === 'dalle') {
+                $image_service = new \SmartNotifyAI\Services\Image\DalleService($api_key);
+            } elseif ($image_provider === 'stability') {
+                // TODO: Implement Stability AI service in the future
+                throw new \Exception(__('Stability AI no está implementado aún', SMARTNOTIFY_AI_TEXT_DOMAIN));
+            }
+
+            if (!$image_service || !$image_service->isAvailable()) {
+                throw new \Exception(__('El servicio de generación de imágenes no está disponible', SMARTNOTIFY_AI_TEXT_DOMAIN));
+            }
+
+            // Generate image
+            $result = $image_service->generateImage($prompt, [
+                'size' => '1024x1024',
+                'quality' => 'standard',
+            ]);
+
+            wp_send_json_success([
+                'message' => __('Imagen generada exitosamente', SMARTNOTIFY_AI_TEXT_DOMAIN),
+                'attachment_id' => $result['attachment_id'],
+                'url' => wp_get_attachment_url($result['attachment_id']),
+            ]);
+        } catch (\Exception $e) {
+            wp_send_json_error(['message' => $e->getMessage()]);
+        }
+    }
+
+    /**
+     * Test image API connection
+     */
+    public function testImageApiConnection() {
+        check_ajax_referer('smartnotify_ai_nonce', 'nonce');
+
+        if (!current_user_can('manage_options')) {
+            wp_send_json_error(['message' => __('Permisos insuficientes', SMARTNOTIFY_AI_TEXT_DOMAIN)]);
+        }
+
+        try {
+            $image_provider = get_option('smartnotify_image_provider', 'huggingface');
+            $api_key = get_option('smartnotify_image_api_key', '');
+
+            if ($image_provider === 'none') {
+                throw new \Exception(__('La generación de imágenes está deshabilitada', SMARTNOTIFY_AI_TEXT_DOMAIN));
+            }
+
+            if (empty($api_key)) {
+                throw new \Exception(__('No se ha configurado la API Key', SMARTNOTIFY_AI_TEXT_DOMAIN));
+            }
+
+            // Create a simple test prompt
+            $test_prompt = 'A simple test image';
+
+            // Create image service based on provider
+            $image_service = null;
+
+            if ($image_provider === 'huggingface') {
+                $image_service = new \SmartNotifyAI\Services\Image\HuggingfaceService($api_key);
+            } elseif ($image_provider === 'dalle') {
+                $image_service = new \SmartNotifyAI\Services\Image\DalleService($api_key);
+            } elseif ($image_provider === 'stability') {
+                throw new \Exception(__('Stability AI no está implementado aún', SMARTNOTIFY_AI_TEXT_DOMAIN));
+            }
+
+            if (!$image_service || !$image_service->isAvailable()) {
+                throw new \Exception(__('El servicio de generación de imágenes no está disponible', SMARTNOTIFY_AI_TEXT_DOMAIN));
+            }
+
+            // For Hugging Face, test with a POST request (inference API requires POST)
+            if ($image_provider === 'huggingface') {
+                $response = wp_remote_post('https://router.huggingface.co/hf-inference/models/stabilityai/stable-diffusion-xl-base-1.0', [
+                    'headers' => [
+                        'Authorization' => 'Bearer ' . $api_key,
+                        'Content-Type' => 'application/json',
+                    ],
+                    'body' => wp_json_encode([
+                        'inputs' => 'test connection',
+                    ]),
+                    'timeout' => 30,
+                ]);
+
+                if (is_wp_error($response)) {
+                    throw new \Exception(__('Error de conexión: ', SMARTNOTIFY_AI_TEXT_DOMAIN) . $response->get_error_message());
+                }
+
+                $response_code = wp_remote_retrieve_response_code($response);
+                $response_body = wp_remote_retrieve_body($response);
+
+                // Log para depuración
+                error_log('Hugging Face test response code: ' . $response_code);
+                error_log('Hugging Face test response body: ' . substr($response_body, 0, 500));
+
+                if ($response_code === 401 || $response_code === 403) {
+                    $data = json_decode($response_body, true);
+                    $detail = isset($data['error']) ? ' - ' . $data['error'] : '';
+                    throw new \Exception(__('API Key inválida o sin permisos', SMARTNOTIFY_AI_TEXT_DOMAIN) . $detail . __(' Verifica que tu token tenga permisos de lectura en https://huggingface.co/settings/tokens', SMARTNOTIFY_AI_TEXT_DOMAIN));
+                }
+
+                if ($response_code === 404) {
+                    throw new \Exception(__('Modelo no encontrado (HTTP 404). El modelo stabilityai/stable-diffusion-xl-base-1.0 no está disponible en la Inference API o requiere una cuenta PRO de Hugging Face. Por favor, verifica tu suscripción en https://huggingface.co/pricing', SMARTNOTIFY_AI_TEXT_DOMAIN));
+                }
+
+                if ($response_code === 410) {
+                    throw new \Exception(__('El modelo ha sido deprecado (HTTP 410). Código de respuesta: ', SMARTNOTIFY_AI_TEXT_DOMAIN) . $response_code . __(' - Respuesta: ', SMARTNOTIFY_AI_TEXT_DOMAIN) . substr($response_body, 0, 200));
+                }
+
+                if ($response_code !== 200 && $response_code !== 503) {
+                    $data = json_decode($response_body, true);
+
+                    // Intentar obtener el mensaje de error de diferentes formas
+                    $error_message = 'Error desconocido';
+
+                    if (isset($data['error'])) {
+                        if (is_string($data['error'])) {
+                            $error_message = $data['error'];
+                        } elseif (is_array($data['error']) && isset($data['error']['message'])) {
+                            $error_message = $data['error']['message'];
+                        }
+                    } elseif (isset($data['message'])) {
+                        $error_message = $data['message'];
+                    } elseif (!empty($response_body) && strlen($response_body) < 200) {
+                        // Si la respuesta es corta, mostrarla directamente
+                        $error_message = $response_body;
+                    }
+
+                    throw new \Exception(__('Error HTTP ' . $response_code . ': ', SMARTNOTIFY_AI_TEXT_DOMAIN) . $error_message);
+                }
+
+                wp_send_json_success([
+                    'message' => __('✓ Conexión exitosa con Hugging Face', SMARTNOTIFY_AI_TEXT_DOMAIN),
+                    'provider' => 'Hugging Face',
+                    'model' => 'Stable Diffusion XL 1.0'
+                ]);
+            } elseif ($image_provider === 'dalle') {
+                // For DALL-E, test with a simple API call
+                $response = wp_remote_get('https://api.openai.com/v1/models', [
+                    'headers' => [
+                        'Authorization' => 'Bearer ' . $api_key,
+                    ],
+                    'timeout' => 10,
+                ]);
+
+                if (is_wp_error($response)) {
+                    throw new \Exception(__('Error de conexión: ', SMARTNOTIFY_AI_TEXT_DOMAIN) . $response->get_error_message());
+                }
+
+                $response_code = wp_remote_retrieve_response_code($response);
+                $response_body = wp_remote_retrieve_body($response);
+
+                // Debug logging
+                error_log('DALL-E test response code: ' . $response_code);
+                error_log('DALL-E test response body: ' . $response_body);
+
+                // Specific HTTP status code handling
+                if ($response_code === 401) {
+                    throw new \Exception(__('API Key de OpenAI inválida. Verifica tu clave de API.', SMARTNOTIFY_AI_TEXT_DOMAIN));
+                }
+
+                if ($response_code === 403) {
+                    throw new \Exception(__('Acceso denegado. Verifica que tu API Key tenga permisos para DALL-E.', SMARTNOTIFY_AI_TEXT_DOMAIN));
+                }
+
+                if ($response_code === 404) {
+                    throw new \Exception(__('Endpoint no encontrado. Verifica la configuración del servicio.', SMARTNOTIFY_AI_TEXT_DOMAIN));
+                }
+
+                if ($response_code !== 200) {
+                    $data = json_decode($response_body, true);
+
+                    // Multiple ways to extract error message
+                    $error_message = 'Error desconocido';
+
+                    if (isset($data['error'])) {
+                        if (is_string($data['error'])) {
+                            $error_message = $data['error'];
+                        } elseif (is_array($data['error']) && isset($data['error']['message'])) {
+                            $error_message = $data['error']['message'];
+                        }
+                    } elseif (isset($data['message'])) {
+                        $error_message = $data['message'];
+                    } elseif (!empty($response_body) && strlen($response_body) < 200) {
+                        $error_message = $response_body;
+                    }
+
+                    throw new \Exception(__('Error HTTP ' . $response_code . ': ', SMARTNOTIFY_AI_TEXT_DOMAIN) . $error_message);
+                }
+
+                wp_send_json_success([
+                    'message' => __('✓ Conexión exitosa con OpenAI DALL-E', SMARTNOTIFY_AI_TEXT_DOMAIN),
+                    'provider' => 'OpenAI',
+                    'model' => 'DALL-E 3'
+                ]);
+            } elseif ($image_provider === 'stability') {
+                // For Stability AI, test with account balance endpoint
+                $response = wp_remote_get('https://api.stability.ai/v1/user/balance', [
+                    'headers' => [
+                        'Authorization' => 'Bearer ' . $api_key,
+                    ],
+                    'timeout' => 10,
+                ]);
+
+                if (is_wp_error($response)) {
+                    throw new \Exception(__('Error de conexión: ', SMARTNOTIFY_AI_TEXT_DOMAIN) . $response->get_error_message());
+                }
+
+                $response_code = wp_remote_retrieve_response_code($response);
+                $response_body = wp_remote_retrieve_body($response);
+
+                // Debug logging
+                error_log('Stability AI test response code: ' . $response_code);
+                error_log('Stability AI test response body: ' . $response_body);
+
+                // Specific HTTP status code handling
+                if ($response_code === 401) {
+                    throw new \Exception(__('API Key de Stability AI inválida. Verifica tu clave de API.', SMARTNOTIFY_AI_TEXT_DOMAIN));
+                }
+
+                if ($response_code === 403) {
+                    throw new \Exception(__('Acceso denegado. Verifica los permisos de tu API Key.', SMARTNOTIFY_AI_TEXT_DOMAIN));
+                }
+
+                if ($response_code === 404) {
+                    throw new \Exception(__('Endpoint no encontrado. Verifica la configuración del servicio.', SMARTNOTIFY_AI_TEXT_DOMAIN));
+                }
+
+                if ($response_code !== 200) {
+                    $data = json_decode($response_body, true);
+
+                    // Multiple ways to extract error message
+                    $error_message = 'Error desconocido';
+
+                    if (isset($data['message'])) {
+                        $error_message = $data['message'];
+                    } elseif (isset($data['error'])) {
+                        if (is_string($data['error'])) {
+                            $error_message = $data['error'];
+                        } elseif (is_array($data['error']) && isset($data['error']['message'])) {
+                            $error_message = $data['error']['message'];
+                        }
+                    } elseif (!empty($response_body) && strlen($response_body) < 200) {
+                        $error_message = $response_body;
+                    }
+
+                    throw new \Exception(__('Error HTTP ' . $response_code . ': ', SMARTNOTIFY_AI_TEXT_DOMAIN) . $error_message);
+                }
+
+                wp_send_json_success([
+                    'message' => __('✓ Conexión exitosa con Stability AI', SMARTNOTIFY_AI_TEXT_DOMAIN),
+                    'provider' => 'Stability AI',
+                    'model' => 'Stable Diffusion'
+                ]);
+            } else {
+                throw new \Exception(__('Proveedor de imágenes no configurado', SMARTNOTIFY_AI_TEXT_DOMAIN));
+            }
         } catch (\Exception $e) {
             wp_send_json_error(['message' => $e->getMessage()]);
         }

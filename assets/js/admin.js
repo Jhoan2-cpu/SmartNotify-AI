@@ -37,12 +37,15 @@
 
             // Test API connection
             $(document).on('click', '#smartnotify_test_api', this.testApiConnection.bind(this));
+            $(document).on('click', '#smartnotify_test_image_api', this.testImageApiConnection.bind(this));
 
             // Provider change handler
             $('#smartnotify_ai_provider').on('change', this.handleProviderChange.bind(this));
+            $('#smartnotify_image_provider').on('change', this.handleImageProviderChange.bind(this));
 
             // API key change handler - enable/disable test button
             $('#smartnotify_ai_api_key').on('input', this.handleApiKeyChange.bind(this));
+            $('#smartnotify_image_api_key').on('input', this.handleImageApiKeyChange.bind(this));
 
             // Modal handlers
             $(document).on('click', '.smartnotify-modal-close', this.closeModal.bind(this));
@@ -61,6 +64,15 @@
 
             // Listen for sentiment display event (when editing a post with existing sentiment)
             $(document).on('smartnotify-display-sentiment', this.displayStoredSentiment.bind(this));
+
+            // Image handlers
+            $(document).on('click', '.smartnotify-upload-image', this.uploadImage.bind(this));
+            $(document).on('click', '.smartnotify-generate-image-prompt', this.generateImageFromPrompt.bind(this));
+            $(document).on('click', '.smartnotify-generate-image-content', this.generateImageFromContent.bind(this));
+            $(document).on('click', '.smartnotify-remove-image', this.removeImage.bind(this));
+
+            // Drag & Drop handlers
+            this.initDragAndDrop();
         },
 
         /**
@@ -374,6 +386,41 @@
         },
 
         /**
+         * Handle image provider change
+         */
+        handleImageProviderChange: function(e) {
+            const $select = $(e.currentTarget);
+            const provider = $select.val();
+            const $apiKeyInput = $('#smartnotify_image_api_key');
+            const $testButton = $('#smartnotify_test_image_api');
+
+            if (provider === 'none') {
+                $apiKeyInput.prop('disabled', true);
+                $testButton.prop('disabled', true);
+            } else {
+                $apiKeyInput.prop('disabled', false);
+                if ($apiKeyInput.val().trim().length > 0) {
+                    $testButton.prop('disabled', false);
+                }
+            }
+        },
+
+        /**
+         * Handle image API key change
+         */
+        handleImageApiKeyChange: function(e) {
+            const $input = $(e.currentTarget);
+            const $button = $('#smartnotify_test_image_api');
+            const provider = $('#smartnotify_image_provider').val();
+
+            if ($input.val().trim().length > 0 && provider !== 'none') {
+                $button.prop('disabled', false);
+            } else {
+                $button.prop('disabled', true);
+            }
+        },
+
+        /**
          * Test API connection
          */
         testApiConnection: function(e) {
@@ -431,6 +478,62 @@
         },
 
         /**
+         * Test image API connection
+         */
+        testImageApiConnection: function(e) {
+            e.preventDefault();
+
+            const $button = $(e.currentTarget);
+            const $result = $('#smartnotify_image_api_test_result');
+
+            // Show loading state
+            $button.prop('disabled', true);
+            const originalHtml = $button.html();
+            $button.html('<span class="dashicons dashicons-update" style="animation: rotation 2s infinite linear; margin-top: 3px;"></span> Probando...');
+
+            // Clear previous result
+            $result.empty();
+
+            $.ajax({
+                url: smartnotifyAI.ajaxUrl,
+                type: 'POST',
+                data: {
+                    action: 'smartnotify_test_image_api',
+                    nonce: smartnotifyAI.nonce
+                },
+                success: (response) => {
+                    if (response.success) {
+                        $result.html(`
+                            <div class="notice notice-success inline" style="margin: 0; padding: 8px 12px;">
+                                <p style="margin: 0;">
+                                    <strong>${response.data.message}</strong><br>
+                                    <small>Proveedor: ${response.data.provider} | Modelo: ${response.data.model}</small>
+                                </p>
+                            </div>
+                        `);
+                    } else {
+                        $result.html(`
+                            <div class="notice notice-error inline" style="margin: 0; padding: 8px 12px;">
+                                <p style="margin: 0;"><strong>✗ ${response.data.message}</strong></p>
+                            </div>
+                        `);
+                    }
+                },
+                error: (xhr) => {
+                    $result.html(`
+                        <div class="notice notice-error inline" style="margin: 0; padding: 8px 12px;">
+                            <p style="margin: 0;"><strong>✗ Error de conexión: ${xhr.statusText}</strong></p>
+                        </div>
+                    `);
+                },
+                complete: () => {
+                    $button.prop('disabled', false);
+                    $button.html(originalHtml);
+                }
+            });
+        },
+
+        /**
          * Close modal
          */
         closeModal: function(e) {
@@ -445,6 +548,12 @@
             $('#smartnotify-sentiment-result').hide().empty();
             $('#analyzed_sentiment').val('');
             $('#analyzed_sentiment_confidence').val('');
+            $('#featured_image_id').val('');
+            $('#image_prompt').val('');
+            $('#smartnotify-image-preview img').attr('src', '');
+            $('#smartnotify-image-preview').hide();
+            $('#smartnotify-image-loading').hide();
+            $('#smartnotify-dropzone').show();
 
             // Reset modal to create mode
             $('#smartnotify-news-form').removeData('post-id');
@@ -767,7 +876,8 @@
                 tags: $('#news_tags').val(),
                 category: $('#news_category').val(),
                 analyzed_sentiment: $('#analyzed_sentiment').val(),
-                analyzed_sentiment_confidence: $('#analyzed_sentiment_confidence').val()
+                analyzed_sentiment_confidence: $('#analyzed_sentiment_confidence').val(),
+                featured_image_id: $('#featured_image_id').val()
             };
 
             if (postId) {
@@ -825,6 +935,239 @@
                     $status.fadeOut();
                 }, 5000);
             }
+        },
+
+        /**
+         * Upload image using WordPress media uploader
+         */
+        uploadImage: function(e) {
+            e.preventDefault();
+
+            // If the media frame already exists, reopen it
+            if (this.imageFrame) {
+                this.imageFrame.open();
+                return;
+            }
+
+            // Create the media frame
+            this.imageFrame = wp.media({
+                title: 'Seleccionar Imagen Destacada',
+                button: {
+                    text: 'Usar esta imagen'
+                },
+                multiple: false
+            });
+
+            // When an image is selected, run a callback
+            this.imageFrame.on('select', () => {
+                const attachment = this.imageFrame.state().get('selection').first().toJSON();
+                this.setFeaturedImage(attachment.id, attachment.url);
+            });
+
+            // Open the modal
+            this.imageFrame.open();
+        },
+
+        /**
+         * Generate image from prompt
+         */
+        generateImageFromPrompt: function(e) {
+            e.preventDefault();
+
+            const prompt = $('#image_prompt').val().trim();
+
+            if (!prompt) {
+                this.showModalMessage('error', 'Por favor ingresa una descripción para la imagen');
+                return;
+            }
+
+            this.generateImage(prompt);
+        },
+
+        /**
+         * Generate image from content
+         */
+        generateImageFromContent: function(e) {
+            e.preventDefault();
+
+            const title = $('#news_title').val().trim();
+            const content = $('#news_content').val().trim();
+
+            if (!content) {
+                this.showModalMessage('error', 'Por favor escribe el contenido de la noticia primero');
+                return;
+            }
+
+            // Create a prompt based on the content
+            const prompt = `Crear una imagen profesional y atractiva para un artículo de noticias titulado: "${title}". El artículo trata sobre: ${content.substring(0, 200)}...`;
+
+            this.generateImage(prompt);
+        },
+
+        /**
+         * Generate image via AJAX
+         */
+        generateImage: function(prompt) {
+            const $generateBtn = $('.smartnotify-generate-image-prompt, .smartnotify-generate-image-content');
+
+            // Disable buttons and show loading
+            $generateBtn.prop('disabled', true);
+            $('#smartnotify-dropzone').hide();
+            $('#smartnotify-image-preview').hide();
+            $('#smartnotify-image-loading').show();
+
+            $.ajax({
+                url: smartnotifyAI.ajaxUrl,
+                type: 'POST',
+                data: {
+                    action: 'smartnotify_generate_image',
+                    nonce: smartnotifyAI.nonce,
+                    prompt: prompt
+                },
+                success: (response) => {
+                    $generateBtn.prop('disabled', false);
+                    $('#smartnotify-image-loading').hide();
+
+                    if (response.success) {
+                        this.setFeaturedImage(response.data.attachment_id, response.data.url);
+                        this.showModalMessage('success', response.data.message);
+                        // Clear prompt field
+                        $('#image_prompt').val('');
+                    } else {
+                        $('#smartnotify-dropzone').show();
+                        this.showModalMessage('error', response.data.message);
+                    }
+                },
+                error: (xhr) => {
+                    $generateBtn.prop('disabled', false);
+                    $('#smartnotify-image-loading').hide();
+                    $('#smartnotify-dropzone').show();
+                    this.showModalMessage('error', 'Error: ' + xhr.statusText);
+                }
+            });
+        },
+
+        /**
+         * Set featured image
+         */
+        setFeaturedImage: function(attachmentId, imageUrl) {
+            $('#featured_image_id').val(attachmentId);
+            $('#smartnotify-image-preview img').attr('src', imageUrl);
+            $('#smartnotify-image-preview').show();
+            $('#smartnotify-dropzone').hide();
+        },
+
+        /**
+         * Remove featured image
+         */
+        removeImage: function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+
+            $('#featured_image_id').val('');
+            $('#smartnotify-image-preview img').attr('src', '');
+            $('#smartnotify-image-preview').hide();
+            $('#smartnotify-dropzone').show();
+        },
+
+        /**
+         * Initialize Drag & Drop functionality
+         */
+        initDragAndDrop: function() {
+            const $dropzone = $('#smartnotify-dropzone');
+            const $fileInput = $('#smartnotify-file-input');
+
+            if (!$dropzone.length || !$fileInput.length) return;
+
+            // Click to select file
+            $dropzone.on('click', function() {
+                $fileInput.click();
+            });
+
+            // File input change
+            $fileInput.on('change', (e) => {
+                const files = e.target.files;
+                if (files && files.length > 0) {
+                    this.handleFileUpload(files[0]);
+                }
+            });
+
+            // Drag events
+            $dropzone.on('dragover', function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                $(this).addClass('dragover');
+            });
+
+            $dropzone.on('dragleave', function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                $(this).removeClass('dragover');
+            });
+
+            $dropzone.on('drop', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                $dropzone.removeClass('dragover');
+
+                const files = e.originalEvent.dataTransfer.files;
+                if (files && files.length > 0) {
+                    this.handleFileUpload(files[0]);
+                }
+            });
+        },
+
+        /**
+         * Handle file upload
+         */
+        handleFileUpload: function(file) {
+            // Validate file type
+            if (!file.type.match('image.*')) {
+                this.showModalMessage('error', 'Por favor selecciona una imagen válida (JPG, PNG, GIF).');
+                return;
+            }
+
+            // Validate file size (10MB max)
+            if (file.size > 10 * 1024 * 1024) {
+                this.showModalMessage('error', 'La imagen es demasiado grande. Tamaño máximo: 10MB');
+                return;
+            }
+
+            // Show loading
+            $('#smartnotify-dropzone').hide();
+            $('#smartnotify-image-loading').show();
+
+            // Create form data
+            const formData = new FormData();
+            formData.append('action', 'upload-attachment');
+            formData.append('name', file.name);
+            formData.append('async-upload', file);
+            formData.append('_wpnonce', smartnotifyAI.nonce);
+
+            // Upload via WordPress Media API
+            $.ajax({
+                url: smartnotifyAI.ajaxUrl,
+                type: 'POST',
+                data: formData,
+                processData: false,
+                contentType: false,
+                success: (response) => {
+                    $('#smartnotify-image-loading').hide();
+
+                    if (response.success && response.data && response.data.id) {
+                        this.setFeaturedImage(response.data.id, response.data.url);
+                        this.showModalMessage('success', 'Imagen subida exitosamente');
+                    } else {
+                        $('#smartnotify-dropzone').show();
+                        this.showModalMessage('error', 'Error al subir la imagen. Por favor intenta de nuevo.');
+                    }
+                },
+                error: () => {
+                    $('#smartnotify-image-loading').hide();
+                    $('#smartnotify-dropzone').show();
+                    this.showModalMessage('error', 'Error al subir la imagen. Por favor intenta de nuevo.');
+                }
+            });
         }
     };
 

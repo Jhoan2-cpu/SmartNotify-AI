@@ -59,6 +59,8 @@ class SettingsPage {
         register_setting('smartnotify_ai_settings', 'smartnotify_ai_enable_auto_tags');
         register_setting('smartnotify_ai_settings', 'smartnotify_ai_enable_auto_summary');
         register_setting('smartnotify_ai_settings', 'smartnotify_ai_enable_sentiment');
+        register_setting('smartnotify_ai_settings', 'smartnotify_image_provider');
+        register_setting('smartnotify_ai_settings', 'smartnotify_image_api_key');
 
         // AI Settings Section
         add_settings_section(
@@ -122,6 +124,30 @@ class SettingsPage {
             [$this, 'renderSentimentField'],
             'smartnotify-settings',
             'smartnotify_features_section'
+        );
+
+        // Image Generation Section
+        add_settings_section(
+            'smartnotify_image_section',
+            __('Generación de Imágenes con IA', SMARTNOTIFY_AI_TEXT_DOMAIN),
+            [$this, 'renderImageSection'],
+            'smartnotify-settings'
+        );
+
+        add_settings_field(
+            'smartnotify_image_provider',
+            __('Proveedor de Imágenes', SMARTNOTIFY_AI_TEXT_DOMAIN),
+            [$this, 'renderImageProviderField'],
+            'smartnotify-settings',
+            'smartnotify_image_section'
+        );
+
+        add_settings_field(
+            'smartnotify_image_api_key',
+            __('API Key para Imágenes', SMARTNOTIFY_AI_TEXT_DOMAIN),
+            [$this, 'renderImageApiKeyField'],
+            'smartnotify-settings',
+            'smartnotify_image_section'
         );
     }
 
@@ -272,6 +298,78 @@ class SettingsPage {
             <input type="checkbox" name="smartnotify_ai_enable_sentiment" value="yes" <?php checked($value, 'yes'); ?> />
             <?php _e('Analizar sentimiento automáticamente al publicar', SMARTNOTIFY_AI_TEXT_DOMAIN); ?>
         </label>
+        <?php
+    }
+
+    /**
+     * Render image section description
+     */
+    public function renderImageSection() {
+        echo '<p>' . __('Configura el servicio de IA para generar imágenes destacadas automáticamente.', SMARTNOTIFY_AI_TEXT_DOMAIN) . '</p>';
+    }
+
+    /**
+     * Render image provider field
+     */
+    public function renderImageProviderField() {
+        $value = get_option('smartnotify_image_provider', 'huggingface');
+        ?>
+        <select name="smartnotify_image_provider" id="smartnotify_image_provider">
+            <option value="huggingface" <?php selected($value, 'huggingface'); ?>>Hugging Face (Gratis) - Recomendado</option>
+            <option value="dalle" <?php selected($value, 'dalle'); ?>>DALL-E (OpenAI)</option>
+            <option value="stability" <?php selected($value, 'stability'); ?>>Stable Diffusion (Stability AI)</option>
+            <option value="none" <?php selected($value, 'none'); ?>>Ninguno (Deshabilitado)</option>
+        </select>
+        <p class="description">
+            <?php _e('Selecciona el proveedor de generación de imágenes. Hugging Face es gratis y recomendado para empezar.', SMARTNOTIFY_AI_TEXT_DOMAIN); ?>
+        </p>
+        <?php
+    }
+
+    /**
+     * Render image API key field
+     */
+    public function renderImageApiKeyField() {
+        $value = get_option('smartnotify_image_api_key', '');
+        $provider = get_option('smartnotify_image_provider', 'huggingface');
+        ?>
+        <div style="display: flex; align-items: flex-start; gap: 10px;">
+            <input
+                type="password"
+                name="smartnotify_image_api_key"
+                id="smartnotify_image_api_key"
+                value="<?php echo esc_attr($value); ?>"
+                class="regular-text"
+                <?php echo $provider === 'none' ? 'disabled' : ''; ?>
+            />
+            <button
+                type="button"
+                id="smartnotify_test_image_api"
+                class="button button-secondary"
+                <?php echo (empty($value) || $provider === 'none') ? 'disabled' : ''; ?>
+            >
+                <span class="dashicons dashicons-admin-plugins" style="margin-top: 3px;"></span>
+                <?php _e('Probar Conexión', SMARTNOTIFY_AI_TEXT_DOMAIN); ?>
+            </button>
+        </div>
+        <div id="smartnotify_image_api_test_result" style="margin-top: 10px;"></div>
+        <p class="description">
+            <?php
+            if ($provider === 'huggingface') {
+                echo __('API Key de Hugging Face (Gratis): ', SMARTNOTIFY_AI_TEXT_DOMAIN);
+                echo '<a href="https://huggingface.co/settings/tokens" target="_blank">https://huggingface.co/settings/tokens</a>';
+                echo '<br><em>' . __('Hugging Face ofrece acceso gratuito a modelos de generación de imágenes como Stable Diffusion.', SMARTNOTIFY_AI_TEXT_DOMAIN) . '</em>';
+            } elseif ($provider === 'dalle') {
+                echo __('API Key de OpenAI (misma que usas para texto, o puedes usar una diferente): ', SMARTNOTIFY_AI_TEXT_DOMAIN);
+                echo '<a href="https://platform.openai.com/api-keys" target="_blank">https://platform.openai.com/api-keys</a>';
+            } elseif ($provider === 'stability') {
+                echo __('API Key de Stability AI: ', SMARTNOTIFY_AI_TEXT_DOMAIN);
+                echo '<a href="https://platform.stability.ai/account/keys" target="_blank">https://platform.stability.ai/account/keys</a>';
+            } else {
+                echo __('No se requiere API Key cuando la generación de imágenes está deshabilitada.', SMARTNOTIFY_AI_TEXT_DOMAIN);
+            }
+            ?>
+        </p>
         <?php
     }
 }
