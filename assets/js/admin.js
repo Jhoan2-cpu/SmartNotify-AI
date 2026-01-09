@@ -71,7 +71,9 @@
             $(document).on('click', '.smartnotify-generate-image-content', this.generateImageFromContent.bind(this));
             $(document).on('click', '.smartnotify-remove-image', this.removeImage.bind(this));
 
-            // Drag & Drop handlers
+            // Drag & Drop handlers with event delegation
+            $(document).on('click', '#smartnotify-dropzone', this.handleDropzoneClick.bind(this));
+            $(document).on('change', '#smartnotify-file-input', this.handleFileInputChange.bind(this));
             this.initDragAndDrop();
         },
 
@@ -1085,52 +1087,65 @@
         },
 
         /**
+         * Handle dropzone click - opens file picker
+         */
+        handleDropzoneClick: function(e) {
+            // Prevent clicking on the file input from triggering this handler
+            if (e.target.id === 'smartnotify-file-input') {
+                return;
+            }
+
+            e.preventDefault();
+            e.stopPropagation();
+
+            const fileInput = document.getElementById('smartnotify-file-input');
+            if (fileInput) {
+                // Use a setTimeout to break out of the event loop
+                setTimeout(() => {
+                    fileInput.click();
+                }, 10);
+            }
+        },
+
+        /**
+         * Handle file input change
+         */
+        handleFileInputChange: function(e) {
+            const files = e.target.files;
+            if (files && files.length > 0) {
+                this.handleFileUpload(files[0]);
+                // Reset file input
+                e.target.value = '';
+            }
+        },
+
+        /**
          * Initialize Drag & Drop functionality
          */
         initDragAndDrop: function() {
-            const $dropzone = $('#smartnotify-dropzone');
-            const $fileInput = $('#smartnotify-file-input');
+            const self = this;
 
-            if (!$dropzone.length || !$fileInput.length) return;
-
-            // Click to select file
-            $dropzone.on('click', (e) => {
+            // Use event delegation for drag events
+            $(document).on('dragover', '#smartnotify-dropzone', function(e) {
                 e.preventDefault();
                 e.stopPropagation();
-                $fileInput[0].click(); // Use native click, not jQuery
+                $(this).addClass('dragover');
             });
 
-            // File input change
-            $fileInput.on('change', (e) => {
-                const files = e.target.files;
-                if (files && files.length > 0) {
-                    this.handleFileUpload(files[0]);
-                    // Reset file input
-                    e.target.value = '';
-                }
-            });
-
-            // Drag events
-            $dropzone.on('dragover', (e) => {
+            $(document).on('dragleave', '#smartnotify-dropzone', function(e) {
                 e.preventDefault();
                 e.stopPropagation();
-                $dropzone.addClass('dragover');
+                $(this).removeClass('dragover');
             });
 
-            $dropzone.on('dragleave', (e) => {
+            $(document).on('drop', '#smartnotify-dropzone', function(e) {
                 e.preventDefault();
                 e.stopPropagation();
-                $dropzone.removeClass('dragover');
-            });
-
-            $dropzone.on('drop', (e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                $dropzone.removeClass('dragover');
+                $(this).removeClass('dragover');
 
                 const files = e.originalEvent.dataTransfer.files;
                 if (files && files.length > 0) {
-                    this.handleFileUpload(files[0]);
+                    self.handleFileUpload(files[0]);
                 }
             });
         },
