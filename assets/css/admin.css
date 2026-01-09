@@ -695,21 +695,41 @@ body.modal-open {
     object-fit: cover;
 }
 
-.smartnotify-remove-image {
+.smartnotify-image-actions {
     position: absolute;
     top: 8px;
     right: 8px;
-    background: rgba(239, 68, 68, 0.9);
+    display: flex;
+    gap: 8px;
+}
+
+.smartnotify-view-image,
+.smartnotify-remove-image {
+    background: rgba(0, 0, 0, 0.7);
     color: white;
     border: none;
     border-radius: 50%;
-    width: 32px;
-    height: 32px;
+    width: 36px;
+    height: 36px;
     display: flex;
     align-items: center;
     justify-content: center;
     cursor: pointer;
     transition: all 0.2s;
+    backdrop-filter: blur(4px);
+}
+
+.smartnotify-view-image {
+    background: rgba(59, 130, 246, 0.9);
+}
+
+.smartnotify-view-image:hover {
+    background: rgba(59, 130, 246, 1);
+    transform: scale(1.1);
+}
+
+.smartnotify-remove-image {
+    background: rgba(239, 68, 68, 0.9);
 }
 
 .smartnotify-remove-image:hover {
@@ -717,6 +737,7 @@ body.modal-open {
     transform: scale(1.1);
 }
 
+.smartnotify-view-image .dashicons,
 .smartnotify-remove-image .dashicons {
     font-size: 18px;
     width: 18px;

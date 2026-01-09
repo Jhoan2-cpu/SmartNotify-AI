@@ -69,6 +69,7 @@
             $(document).on('click', '.smartnotify-upload-image', this.uploadImage.bind(this));
             $(document).on('click', '.smartnotify-generate-image-prompt', this.generateImageFromPrompt.bind(this));
             $(document).on('click', '.smartnotify-generate-image-content', this.generateImageFromContent.bind(this));
+            $(document).on('click', '.smartnotify-view-image', this.viewImage.bind(this));
             $(document).on('click', '.smartnotify-remove-image', this.removeImage.bind(this));
 
             // Drag & Drop handlers with event delegation
@@ -1069,6 +1070,19 @@
             $('#smartnotify-dropzone').hide();
             $('.smartnotify-ai-generation-section').hide();
             $('.smartnotify-library-upload').hide();
+        },
+
+        /**
+         * View full image
+         */
+        viewImage: function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+
+            const imageUrl = $('#smartnotify-image-preview img').attr('src');
+            if (imageUrl) {
+                window.open(imageUrl, '_blank');
+            }
         },
 
         /**

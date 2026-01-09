@@ -331,9 +331,14 @@ class NewsForm {
                         <!-- Image Preview -->
                         <div id="smartnotify-image-preview" class="smartnotify-image-preview" style="display: none;">
                             <img src="" alt="Preview" />
-                            <button type="button" class="smartnotify-remove-image" title="<?php esc_attr_e('Eliminar imagen', SMARTNOTIFY_AI_TEXT_DOMAIN); ?>">
-                                <span class="dashicons dashicons-no-alt"></span>
-                            </button>
+                            <div class="smartnotify-image-actions">
+                                <button type="button" class="smartnotify-view-image" title="<?php esc_attr_e('Ver imagen completa', SMARTNOTIFY_AI_TEXT_DOMAIN); ?>">
+                                    <span class="dashicons dashicons-visibility"></span>
+                                </button>
+                                <button type="button" class="smartnotify-remove-image" title="<?php esc_attr_e('Eliminar imagen', SMARTNOTIFY_AI_TEXT_DOMAIN); ?>">
+                                    <span class="dashicons dashicons-no-alt"></span>
+                                </button>
+                            </div>
                         </div>
 
                         <!-- Loading Spinner for Image Generation -->
