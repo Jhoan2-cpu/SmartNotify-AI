@@ -15,12 +15,103 @@
     align-items: center;
     justify-content: center;
     gap: 8px;
-    transition: all 0.2s ease;
+    transition: all 0.3s ease;
 }
 
-.smartnotify-ai-buttons button:hover {
-    transform: translateY(-1px);
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+/* Botones con efecto de brillo */
+.smartnotify-ai-buttons button,
+.smartnotify-ai-btn {
+    position: relative;
+    overflow: visible;
+    isolation: isolate;
+}
+
+.smartnotify-ai-buttons button::before,
+.smartnotify-ai-btn::before {
+    content: '';
+    position: absolute;
+    inset: -2px;
+    background: linear-gradient(45deg, #667eea, #764ba2, #f093fb, #4facfe, #667eea);
+    background-size: 400% 400%;
+    border-radius: inherit;
+    opacity: 0;
+    z-index: -1;
+    transition: opacity 0.3s ease;
+    animation: none;
+    filter: blur(8px);
+    pointer-events: none;
+}
+
+.smartnotify-ai-buttons button:hover::before,
+.smartnotify-ai-btn:hover::before {
+    opacity: 0.7;
+    animation: gradientGlow 3s ease infinite;
+}
+
+@keyframes gradientGlow {
+    0%, 100% { background-position: 0% 50%; }
+    50% { background-position: 100% 50%; }
+}
+
+/* Contenedor de estrellas */
+.smartnotify-ai-buttons button:hover::after,
+.smartnotify-ai-btn:hover::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-image: 
+        radial-gradient(circle, #fff 1px, transparent 1px),
+        radial-gradient(circle, #fff 1px, transparent 1px),
+        radial-gradient(circle, #fff 1.5px, transparent 1.5px),
+        radial-gradient(circle, #fff 0.5px, transparent 0.5px),
+        radial-gradient(circle, #fff 1px, transparent 1px);
+    background-size: 50% 50%, 60% 60%, 40% 40%, 70% 70%, 55% 55%;
+    background-position: 0% 0%, 100% 0%, 100% 100%, 0% 100%, 50% 50%;
+    animation: sparkleMove 3s linear infinite;
+    opacity: 0.6;
+    pointer-events: none;
+    mix-blend-mode: screen;
+}
+
+@keyframes sparkleMove {
+    0% {
+        transform: translate(0, 0) scale(1);
+        opacity: 0.6;
+    }
+    25% {
+        transform: translate(2px, -2px) scale(1.1);
+        opacity: 0.8;
+    }
+    50% {
+        transform: translate(-2px, 2px) scale(0.9);
+        opacity: 1;
+    }
+    75% {
+        transform: translate(2px, 2px) scale(1.05);
+        opacity: 0.7;
+    }
+    100% {
+        transform: translate(0, 0) scale(1);
+        opacity: 0.6;
+    }
+}
+
+.smartnotify-ai-buttons button > *,
+.smartnotify-ai-btn > * {
+    position: relative;
+    z-index: 1;
+}
+
+.smartnotify-ai-buttons button:hover,
+.smartnotify-ai-btn:hover {
+    transform: translateY(-2px) scale(1.02);
+    box-shadow: 
+        0 5px 15px rgba(102, 126, 234, 0.4),
+        0 0 30px rgba(118, 75, 162, 0.3),
+        inset 0 1px 0 rgba(255, 255, 255, 0.2);
 }
 
 .smartnotify-ai-buttons button:active {
