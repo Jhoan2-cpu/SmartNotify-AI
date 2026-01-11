@@ -155,34 +155,117 @@ class SettingsPage {
      * Render settings page
      */
     public function renderPage() {
+        $provider        = get_option('smartnotify_ai_provider', 'openai');
+        $model           = get_option('smartnotify_ai_model', 'gpt-4');
+        $image_provider  = get_option('smartnotify_image_provider', 'dalle');
+        $api_key         = get_option('smartnotify_ai_api_key', '');
+        $featuresEnabled = array_filter([
+            get_option('smartnotify_ai_enable_auto_summary', 'yes'),
+            get_option('smartnotify_ai_enable_auto_tags', 'yes'),
+            get_option('smartnotify_ai_enable_sentiment', 'yes'),
+        ], function($value) {
+            return $value === 'yes';
+        });
+
+        $provider_label = $provider === 'anthropic' ? 'Anthropic' : 'OpenAI';
+        $image_label    = $image_provider === 'none' ? __('Desactivado', SMARTNOTIFY_AI_TEXT_DOMAIN) : strtoupper($image_provider);
+        $status_label   = !empty($api_key) ? __('Conexión segura', SMARTNOTIFY_AI_TEXT_DOMAIN) : __('API pendiente', SMARTNOTIFY_AI_TEXT_DOMAIN);
+
         ?>
-        <div class="wrap">
-            <h1><?php echo esc_html(get_admin_page_title()); ?></h1>
+        <div class="wrap smartnotify-admin-wrap">
+            <div class="smartnotify-admin-hero-card">
+                <div class="smartnotify-admin-hero-text">
+                    <p class="smartnotify-eyebrow"><?php _e('SmartNotify AI', SMARTNOTIFY_AI_TEXT_DOMAIN); ?></p>
+                    <h1 class="smartnotify-hero-title"><?php echo esc_html(get_admin_page_title()); ?></h1>
+                    <p class="smartnotify-hero-subtitle">
+                        <?php _e('Configura tus proveedores, credenciales y automatizaciones de IA desde un panel visual y coherente.', SMARTNOTIFY_AI_TEXT_DOMAIN); ?>
+                    </p>
+                </div>
+                <div class="smartnotify-hero-pills">
+                    <span class="smartnotify-hero-pill">
+                        <small><?php _e('Proveedor activo', SMARTNOTIFY_AI_TEXT_DOMAIN); ?></small>
+                        <strong><?php echo esc_html($provider_label); ?></strong>
+                    </span>
+                    <span class="smartnotify-hero-pill">
+                        <small><?php _e('Modelo seleccionado', SMARTNOTIFY_AI_TEXT_DOMAIN); ?></small>
+                        <strong><?php echo esc_html($model); ?></strong>
+                    </span>
+                    <span class="smartnotify-hero-pill">
+                        <small><?php _e('Funciones automáticas', SMARTNOTIFY_AI_TEXT_DOMAIN); ?></small>
+                        <strong><?php echo esc_html(count($featuresEnabled)); ?></strong>
+                    </span>
+                    <span class="smartnotify-hero-pill">
+                        <small><?php _e('Estado API', SMARTNOTIFY_AI_TEXT_DOMAIN); ?></small>
+                        <strong><?php echo esc_html($status_label); ?></strong>
+                    </span>
+                </div>
+            </div>
 
             <?php settings_errors(); ?>
 
-            <form method="post" action="options.php">
-                <?php
-                settings_fields('smartnotify_ai_settings');
-                do_settings_sections('smartnotify-settings');
-                submit_button();
-                ?>
-            </form>
+            <div class="smartnotify-settings-grid">
+                <section class="smartnotify-card smartnotify-card-primary">
+                    <header class="smartnotify-card-header">
+                        <div>
+                            <p class="smartnotify-eyebrow"><?php _e('Panel de control', SMARTNOTIFY_AI_TEXT_DOMAIN); ?></p>
+                            <h2><?php _e('Configuración principal', SMARTNOTIFY_AI_TEXT_DOMAIN); ?></h2>
+                            <p><?php _e('Actualiza tus llaves, modelos y funciones automáticas con una interfaz clara.', SMARTNOTIFY_AI_TEXT_DOMAIN); ?></p>
+                        </div>
+                        <div class="smartnotify-card-badge">
+                            <span><?php echo esc_html($image_label); ?></span>
+                            <small><?php _e('Proveedor de imágenes', SMARTNOTIFY_AI_TEXT_DOMAIN); ?></small>
+                        </div>
+                    </header>
 
-            <div class="card" style="max-width: 800px; margin-top: 20px;">
-                <h2><?php _e('Cómo Usar', SMARTNOTIFY_AI_TEXT_DOMAIN); ?></h2>
-                <ol>
-                    <li><?php _e('Selecciona tu proveedor de IA preferido (OpenAI o Anthropic)', SMARTNOTIFY_AI_TEXT_DOMAIN); ?></li>
-                    <li><?php _e('Ingresa tu API Key del proveedor seleccionado', SMARTNOTIFY_AI_TEXT_DOMAIN); ?></li>
-                    <li><?php _e('Selecciona el modelo que deseas usar', SMARTNOTIFY_AI_TEXT_DOMAIN); ?></li>
-                    <li><?php _e('Habilita las funciones automáticas que necesites', SMARTNOTIFY_AI_TEXT_DOMAIN); ?></li>
-                </ol>
+                    <form class="smartnotify-settings-form" method="post" action="options.php">
+                        <?php
+                        settings_fields('smartnotify_ai_settings');
+                        do_settings_sections('smartnotify-settings');
+                        submit_button(__('Guardar configuración', SMARTNOTIFY_AI_TEXT_DOMAIN), 'primary smartnotify-btn-primary');
+                        ?>
+                    </form>
+                </section>
 
-                <h3><?php _e('Obtener API Keys', SMARTNOTIFY_AI_TEXT_DOMAIN); ?></h3>
-                <ul>
-                    <li><strong>OpenAI:</strong> <a href="https://platform.openai.com/api-keys" target="_blank">https://platform.openai.com/api-keys</a></li>
-                    <li><strong>Anthropic:</strong> <a href="https://console.anthropic.com/settings/keys" target="_blank">https://console.anthropic.com/settings/keys</a></li>
-                </ul>
+                <section class="smartnotify-card smartnotify-card-secondary">
+                    <header>
+                        <p class="smartnotify-eyebrow"><?php _e('Guía rápida', SMARTNOTIFY_AI_TEXT_DOMAIN); ?></p>
+                        <h2><?php _e('Domina el flujo en minutos', SMARTNOTIFY_AI_TEXT_DOMAIN); ?></h2>
+                    </header>
+                    <ol class="smartnotify-guide-list">
+                        <li>
+                            <span class="smartnotify-guide-icon">1</span>
+                            <div>
+                                <h3><?php _e('Selecciona el proveedor de IA', SMARTNOTIFY_AI_TEXT_DOMAIN); ?></h3>
+                                <p><?php _e('Elige entre OpenAI o Anthropic según tus necesidades de contenido.', SMARTNOTIFY_AI_TEXT_DOMAIN); ?></p>
+                            </div>
+                        </li>
+                        <li>
+                            <span class="smartnotify-guide-icon">2</span>
+                            <div>
+                                <h3><?php _e('Conecta tus credenciales', SMARTNOTIFY_AI_TEXT_DOMAIN); ?></h3>
+                                <p><?php _e('Guarda la API key correspondiente y realiza una prueba instantánea.', SMARTNOTIFY_AI_TEXT_DOMAIN); ?></p>
+                            </div>
+                        </li>
+                        <li>
+                            <span class="smartnotify-guide-icon">3</span>
+                            <div>
+                                <h3><?php _e('Activa las automatizaciones', SMARTNOTIFY_AI_TEXT_DOMAIN); ?></h3>
+                                <p><?php _e('Define si deseas resúmenes, etiquetas o análisis de sentimiento al publicar.', SMARTNOTIFY_AI_TEXT_DOMAIN); ?></p>
+                            </div>
+                        </li>
+                    </ol>
+
+                    <div class="smartnotify-resource-links">
+                        <a href="https://platform.openai.com/api-keys" class="smartnotify-link" target="_blank" rel="noopener">
+                            <span class="dashicons dashicons-external"></span>
+                            <?php _e('Obtener claves de OpenAI', SMARTNOTIFY_AI_TEXT_DOMAIN); ?>
+                        </a>
+                        <a href="https://console.anthropic.com/settings/keys" class="smartnotify-link" target="_blank" rel="noopener">
+                            <span class="dashicons dashicons-external"></span>
+                            <?php _e('Obtener claves de Anthropic', SMARTNOTIFY_AI_TEXT_DOMAIN); ?>
+                        </a>
+                    </div>
+                </section>
             </div>
         </div>
         <?php
