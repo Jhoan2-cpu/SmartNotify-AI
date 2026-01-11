@@ -290,34 +290,42 @@
         },
 
         /**
-         * Show loading state
+         * Show loading state with enhanced animation
          */
         showLoading: function($button, text) {
-            $button.addClass('loading');
-            $button.data('original-text', $button.text());
-            $button.find('.dashicons').addClass('dashicons-update');
+            $button.addClass('loading ai-processing');
+            $button.data('original-text', $button.html());
+            $button.prop('disabled', true);
 
-            const buttonText = $button.contents().filter(function() {
-                return this.nodeType === 3;
-            }).first();
+            // Create enhanced loading spinner
+            const loadingHTML = `
+                <span class="smartnotify-ai-loader">
+                    <span class="loader-spinner">
+                        <span class="spinner-ring"></span>
+                        <span class="spinner-ring"></span>
+                        <span class="spinner-ring"></span>
+                        <span class="spinner-core"></span>
+                    </span>
+                    <span class="loader-text">${text}</span>
+                    <span class="loader-dots">
+                        <span>.</span><span>.</span><span>.</span>
+                    </span>
+                </span>
+            `;
 
-            buttonText.replaceWith(' ' + text);
+            $button.html(loadingHTML);
         },
 
         /**
          * Hide loading state
          */
         hideLoading: function($button) {
-            $button.removeClass('loading');
-            $button.find('.dashicons').removeClass('dashicons-update');
+            $button.removeClass('loading ai-processing');
+            $button.prop('disabled', false);
 
             const originalText = $button.data('original-text');
             if (originalText) {
-                const buttonText = $button.contents().filter(function() {
-                    return this.nodeType === 3;
-                }).first();
-
-                buttonText.replaceWith(' ' + originalText.trim());
+                $button.html(originalText);
             }
         },
 
