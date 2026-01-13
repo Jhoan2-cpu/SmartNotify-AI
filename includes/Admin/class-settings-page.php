@@ -54,13 +54,19 @@ class SettingsPage {
      */
     public function registerSettings() {
         register_setting('smartnotify_ai_settings', 'smartnotify_ai_provider');
-        register_setting('smartnotify_ai_settings', 'smartnotify_ai_api_key');
+        register_setting('smartnotify_ai_settings', 'smartnotify_ai_api_key', [
+            'sanitize_callback' => [$this, 'sanitizeApiKey']
+        ]);
         register_setting('smartnotify_ai_settings', 'smartnotify_ai_model');
         register_setting('smartnotify_ai_settings', 'smartnotify_ai_enable_auto_tags');
         register_setting('smartnotify_ai_settings', 'smartnotify_ai_enable_auto_summary');
         register_setting('smartnotify_ai_settings', 'smartnotify_ai_enable_sentiment');
         register_setting('smartnotify_ai_settings', 'smartnotify_image_provider');
-        register_setting('smartnotify_ai_settings', 'smartnotify_image_api_key');
+        register_setting('smartnotify_ai_settings', 'smartnotify_image_api_key', [
+            'sanitize_callback' => [$this, 'sanitizeImageApiKey']
+        ]);
+        register_setting('smartnotify_ai_settings', 'smartnotify_ai_api_key_configured');
+        register_setting('smartnotify_ai_settings', 'smartnotify_image_api_key_configured');
 
         // AI Settings Section
         add_settings_section(
@@ -296,20 +302,23 @@ class SettingsPage {
      */
     public function renderApiKeyField() {
         $value = get_option('smartnotify_ai_api_key', '');
+        $is_configured = !empty($value);
         ?>
         <div style="display: flex; align-items: flex-start; gap: 10px;">
             <input
                 type="password"
                 name="smartnotify_ai_api_key"
                 id="smartnotify_ai_api_key"
-                value="<?php echo esc_attr($value); ?>"
+                value=""
+                placeholder="<?php echo $is_configured ? esc_attr__('••••••••••••••••••••••••••', SMARTNOTIFY_AI_TEXT_DOMAIN) : esc_attr__('Ingresa tu API key', SMARTNOTIFY_AI_TEXT_DOMAIN); ?>"
                 class="regular-text"
             />
+            <input type="hidden" name="smartnotify_ai_api_key_configured" value="<?php echo $is_configured ? '1' : '0'; ?>" />
             <button
                 type="button"
                 id="smartnotify_test_api"
                 class="button button-secondary"
-                <?php echo empty($value) ? 'disabled' : ''; ?>
+                <?php echo !$is_configured ? 'disabled' : ''; ?>
             >
                 <span class="dashicons dashicons-admin-plugins" style="margin-top: 3px;"></span>
                 <?php _e('Probar Conexión', SMARTNOTIFY_AI_TEXT_DOMAIN); ?>
@@ -317,7 +326,13 @@ class SettingsPage {
         </div>
         <div id="smartnotify_api_test_result" style="margin-top: 10px;"></div>
         <p class="description">
-            <?php _e('Tu API key se almacena de forma segura en la base de datos.', SMARTNOTIFY_AI_TEXT_DOMAIN); ?>
+            <?php 
+            if ($is_configured) {
+                _e('API key configurada. Déjala en blanco para mantenerla o ingresa una nueva para cambiarla.', SMARTNOTIFY_AI_TEXT_DOMAIN);
+            } else {
+                _e('Ingresa tu API key. Se almacenará de forma segura en la base de datos.', SMARTNOTIFY_AI_TEXT_DOMAIN);
+            }
+            ?>
         </p>
         <?php
     }
@@ -414,6 +429,7 @@ class SettingsPage {
      */
     public function renderImageApiKeyField() {
         $value = get_option('smartnotify_image_api_key', '');
+        $is_configured = !empty($value);
         $provider = get_option('smartnotify_image_provider', 'huggingface');
         ?>
         <div style="display: flex; align-items: flex-start; gap: 10px;">
@@ -421,15 +437,17 @@ class SettingsPage {
                 type="password"
                 name="smartnotify_image_api_key"
                 id="smartnotify_image_api_key"
-                value="<?php echo esc_attr($value); ?>"
+                value=""
+                placeholder="<?php echo $is_configured ? esc_attr__('••••••••••••••••••••••••••', SMARTNOTIFY_AI_TEXT_DOMAIN) : esc_attr__('Ingresa tu API key', SMARTNOTIFY_AI_TEXT_DOMAIN); ?>"
                 class="regular-text"
                 <?php echo $provider === 'none' ? 'disabled' : ''; ?>
             />
+            <input type="hidden" name="smartnotify_image_api_key_configured" value="<?php echo $is_configured ? '1' : '0'; ?>" />
             <button
                 type="button"
                 id="smartnotify_test_image_api"
                 class="button button-secondary"
-                <?php echo (empty($value) || $provider === 'none') ? 'disabled' : ''; ?>
+                <?php echo (!$is_configured || $provider === 'none') ? 'disabled' : ''; ?>
             >
                 <span class="dashicons dashicons-admin-plugins" style="margin-top: 3px;"></span>
                 <?php _e('Probar Conexión', SMARTNOTIFY_AI_TEXT_DOMAIN); ?>
@@ -438,6 +456,12 @@ class SettingsPage {
         <div id="smartnotify_image_api_test_result" style="margin-top: 10px;"></div>
         <p class="description">
             <?php
+            if ($is_configured) {
+                echo '<strong>' . __('API key configurada.', SMARTNOTIFY_AI_TEXT_DOMAIN) . '</strong> ';
+                echo __('Déjala en blanco para mantenerla o ingresa una nueva para cambiarla.', SMARTNOTIFY_AI_TEXT_DOMAIN);
+                echo '<br><br>';
+            }
+            
             if ($provider === 'huggingface') {
                 echo __('API Key de Hugging Face (Gratis): ', SMARTNOTIFY_AI_TEXT_DOMAIN);
                 echo '<a href="https://huggingface.co/settings/tokens" target="_blank">https://huggingface.co/settings/tokens</a>';
@@ -455,4 +479,39 @@ class SettingsPage {
         </p>
         <?php
     }
+
+    /**
+     * Sanitize API key field
+     * Only update if a new value is provided
+     *
+     * @param string $value New value
+     * @return string Sanitized value
+     */
+    public function sanitizeApiKey($value) {
+        // If empty and key is configured, keep the existing key
+        if (empty($value) && isset($_POST['smartnotify_ai_api_key_configured']) && $_POST['smartnotify_ai_api_key_configured'] === '1') {
+            return get_option('smartnotify_ai_api_key', '');
+        }
+        
+        // Otherwise sanitize and save the new value
+        return sanitize_text_field($value);
+    }
+
+    /**
+     * Sanitize image API key field
+     * Only update if a new value is provided
+     *
+     * @param string $value New value
+     * @return string Sanitized value
+     */
+    public function sanitizeImageApiKey($value) {
+        // If empty and key is configured, keep the existing key
+        if (empty($value) && isset($_POST['smartnotify_image_api_key_configured']) && $_POST['smartnotify_image_api_key_configured'] === '1') {
+            return get_option('smartnotify_image_api_key', '');
+        }
+        
+        // Otherwise sanitize and save the new value
+        return sanitize_text_field($value);
+    }
 }
+
