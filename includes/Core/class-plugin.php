@@ -66,6 +66,9 @@ class Plugin {
 
         // Make columns sortable
         add_filter('manage_edit-smartnotify_news_sortable_columns', [$this, 'make_columns_sortable']);
+
+        // Remove 'View' action from row actions
+        add_filter('post_row_actions', [$this, 'remove_view_action'], 10, 2);
     }
 
     /**
@@ -204,5 +207,20 @@ class Plugin {
     public function make_columns_sortable($columns) {
         $columns['sentiment'] = 'sentiment';
         return $columns;
+    }
+
+    /**
+     * Remove 'View' and 'Quick Edit' actions from row actions
+     *
+     * @param array $actions Row actions
+     * @param \WP_Post $post Post object
+     * @return array
+     */
+    public function remove_view_action($actions, $post) {
+        if ($post->post_type === 'smartnotify_news') {
+            unset($actions['view']);
+            unset($actions['inline hide-if-no-js']);
+        }
+        return $actions;
     }
 }
