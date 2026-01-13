@@ -241,19 +241,26 @@ class SettingsPage {
                         <li>
                             <span class="smartnotify-guide-icon">1</span>
                             <div>
-                                <h3><?php _e('Selecciona el proveedor de IA', SMARTNOTIFY_AI_TEXT_DOMAIN); ?></h3>
-                                <p><?php _e('Elige entre OpenAI o Anthropic según tus necesidades de contenido.', SMARTNOTIFY_AI_TEXT_DOMAIN); ?></p>
+                                <h3><?php _e('Obtén tu API Key de Anthropic (Claude)', SMARTNOTIFY_AI_TEXT_DOMAIN); ?></h3>
+                                <p><?php _e('Visita la consola de Anthropic y crea tu clave para usar Claude en la generación de contenido.', SMARTNOTIFY_AI_TEXT_DOMAIN); ?></p>
                             </div>
                         </li>
                         <li>
                             <span class="smartnotify-guide-icon">2</span>
                             <div>
-                                <h3><?php _e('Conecta tus credenciales', SMARTNOTIFY_AI_TEXT_DOMAIN); ?></h3>
-                                <p><?php _e('Guarda la API key correspondiente y realiza una prueba instantánea.', SMARTNOTIFY_AI_TEXT_DOMAIN); ?></p>
+                                <h3><?php _e('Configura tu API Key', SMARTNOTIFY_AI_TEXT_DOMAIN); ?></h3>
+                                <p><?php _e('Guarda tu API key de Anthropic y realiza una prueba instantánea para verificar la conexión.', SMARTNOTIFY_AI_TEXT_DOMAIN); ?></p>
                             </div>
                         </li>
                         <li>
                             <span class="smartnotify-guide-icon">3</span>
+                            <div>
+                                <h3><?php _e('Genera imágenes con Hugging Face (Opcional)', SMARTNOTIFY_AI_TEXT_DOMAIN); ?></h3>
+                                <p><?php _e('Si deseas imágenes, añade tu API Key de Hugging Face para usar modelos gratuitos como Stable Diffusion.', SMARTNOTIFY_AI_TEXT_DOMAIN); ?></p>
+                            </div>
+                        </li>
+                        <li>
+                            <span class="smartnotify-guide-icon">4</span>
                             <div>
                                 <h3><?php _e('Activa las automatizaciones', SMARTNOTIFY_AI_TEXT_DOMAIN); ?></h3>
                                 <p><?php _e('Define si deseas resúmenes, etiquetas o análisis de sentimiento al publicar.', SMARTNOTIFY_AI_TEXT_DOMAIN); ?></p>
@@ -262,15 +269,20 @@ class SettingsPage {
                     </ol>
 
                     <div class="smartnotify-resource-links">
-                        <a href="https://platform.openai.com/api-keys" class="smartnotify-link" target="_blank" rel="noopener">
-                            <span class="dashicons dashicons-external"></span>
-                            <?php _e('Obtener claves de OpenAI', SMARTNOTIFY_AI_TEXT_DOMAIN); ?>
-                        </a>
                         <a href="https://console.anthropic.com/settings/keys" class="smartnotify-link" target="_blank" rel="noopener">
                             <span class="dashicons dashicons-external"></span>
-                            <?php _e('Obtener claves de Anthropic', SMARTNOTIFY_AI_TEXT_DOMAIN); ?>
+                            <?php _e('Obtener API Key de Anthropic', SMARTNOTIFY_AI_TEXT_DOMAIN); ?>
+                        </a>
+                        <a href="https://huggingface.co/settings/tokens" class="smartnotify-link" target="_blank" rel="noopener">
+                            <span class="dashicons dashicons-external"></span>
+                            <?php _e('Obtener API Key de Hugging Face', SMARTNOTIFY_AI_TEXT_DOMAIN); ?>
                         </a>
                     </div>
+
+                    <p style="margin-top: 20px; padding: 12px; background: #e0f2fe; border-left: 4px solid #0284c7; border-radius: 4px;">
+                        <strong style="color: #0c4a6e;">🛠️ <?php _e('Próximamente:', SMARTNOTIFY_AI_TEXT_DOMAIN); ?></strong>
+                        <span style="color: #0c4a6e;"><?php _e('Estamos trabajando para integrar más proveedores de IA para ofrecerte mayor flexibilidad.', SMARTNOTIFY_AI_TEXT_DOMAIN); ?></span>
+                    </p>
                 </section>
             </div>
         </div>
@@ -288,12 +300,17 @@ class SettingsPage {
      * Render provider field
      */
     public function renderProviderField() {
-        $value = get_option('smartnotify_ai_provider', 'openai');
+        // Set Anthropic as the only provider
+        update_option('smartnotify_ai_provider', 'anthropic');
         ?>
-        <select name="smartnotify_ai_provider" id="smartnotify_ai_provider">
-            <option value="openai" <?php selected($value, 'openai'); ?>>OpenAI (GPT-4)</option>
-            <option value="anthropic" <?php selected($value, 'anthropic'); ?>>Anthropic (Claude)</option>
-        </select>
+        <div style="padding: 12px; background: #f0f0f1; border-left: 4px solid #2271b1; border-radius: 4px;">
+            <strong>Anthropic (Claude)</strong>
+            <p class="description" style="margin: 8px 0 0 0;">
+                <?php _e('Actualmente usando Claude de Anthropic para generación de contenido.', SMARTNOTIFY_AI_TEXT_DOMAIN); ?><br>
+                <em style="color: #646970;"><?php _e('🔧 Estamos trabajando para integrar otros proveedores de IA próximamente.', SMARTNOTIFY_AI_TEXT_DOMAIN); ?></em>
+            </p>
+        </div>
+        <input type="hidden" name="smartnotify_ai_provider" value="anthropic" />
         <?php
     }
 
@@ -341,22 +358,18 @@ class SettingsPage {
      * Render model field
      */
     public function renderModelField() {
-        $value = get_option('smartnotify_ai_model', 'gpt-4');
-        $provider = get_option('smartnotify_ai_provider', 'openai');
+        $value = get_option('smartnotify_ai_model', 'claude-sonnet-4-20250514');
         ?>
         <select name="smartnotify_ai_model" id="smartnotify_ai_model">
-            <?php if ($provider === 'openai'): ?>
-                <option value="gpt-4" <?php selected($value, 'gpt-4'); ?>>GPT-4</option>
-                <option value="gpt-4-turbo" <?php selected($value, 'gpt-4-turbo'); ?>>GPT-4 Turbo</option>
-                <option value="gpt-3.5-turbo" <?php selected($value, 'gpt-3.5-turbo'); ?>>GPT-3.5 Turbo</option>
-            <?php else: ?>
-                <option value="claude-sonnet-4-20250514" <?php selected($value, 'claude-sonnet-4-20250514'); ?>>Claude Sonnet 4.5 (Recomendado)</option>
-                <option value="claude-opus-4-20250514" <?php selected($value, 'claude-opus-4-20250514'); ?>>Claude Opus 4.5</option>
-                <option value="claude-haiku-4-20250417" <?php selected($value, 'claude-haiku-4-20250417'); ?>>Claude Haiku 4 (Rápido)</option>
-                <option value="claude-3-7-sonnet-20250219" <?php selected($value, 'claude-3-7-sonnet-20250219'); ?>>Claude Sonnet 3.7</option>
-                <option value="claude-3-5-haiku-20241022" <?php selected($value, 'claude-3-5-haiku-20241022'); ?>>Claude Haiku 3.5</option>
-            <?php endif; ?>
+            <option value="claude-sonnet-4-20250514" <?php selected($value, 'claude-sonnet-4-20250514'); ?>>Claude Sonnet 4.5 (Recomendado)</option>
+            <option value="claude-opus-4-20250514" <?php selected($value, 'claude-opus-4-20250514'); ?>>Claude Opus 4.5</option>
+            <option value="claude-haiku-4-20250417" <?php selected($value, 'claude-haiku-4-20250417'); ?>>Claude Haiku 4 (Rápido)</option>
+            <option value="claude-3-7-sonnet-20250219" <?php selected($value, 'claude-3-7-sonnet-20250219'); ?>>Claude Sonnet 3.7</option>
+            <option value="claude-3-5-haiku-20241022" <?php selected($value, 'claude-3-5-haiku-20241022'); ?>>Claude Haiku 3.5</option>
         </select>
+        <p class="description">
+            <?php _e('Sonnet 4.5 es el modelo más reciente y recomendado de Anthropic.', SMARTNOTIFY_AI_TEXT_DOMAIN); ?>
+        </p>
         <?php
     }
 
@@ -410,17 +423,17 @@ class SettingsPage {
      * Render image provider field
      */
     public function renderImageProviderField() {
-        $value = get_option('smartnotify_image_provider', 'huggingface');
+        // Set Hugging Face as the only provider
+        update_option('smartnotify_image_provider', 'huggingface');
         ?>
-        <select name="smartnotify_image_provider" id="smartnotify_image_provider">
-            <option value="huggingface" <?php selected($value, 'huggingface'); ?>>Hugging Face (Gratis) - Recomendado</option>
-            <option value="dalle" <?php selected($value, 'dalle'); ?>>DALL-E (OpenAI)</option>
-            <option value="stability" <?php selected($value, 'stability'); ?>>Stable Diffusion (Stability AI)</option>
-            <option value="none" <?php selected($value, 'none'); ?>>Ninguno (Deshabilitado)</option>
-        </select>
-        <p class="description">
-            <?php _e('Selecciona el proveedor de generación de imágenes. Hugging Face es gratis y recomendado para empezar.', SMARTNOTIFY_AI_TEXT_DOMAIN); ?>
-        </p>
+        <div style="padding: 12px; background: #f0f0f1; border-left: 4px solid #00a32a; border-radius: 4px;">
+            <strong>Hugging Face (Gratis)</strong> 🎉
+            <p class="description" style="margin: 8px 0 0 0;">
+                <?php _e('Usa modelos de generación de imágenes gratuitos como Stable Diffusion.', SMARTNOTIFY_AI_TEXT_DOMAIN); ?><br>
+                <em style="color: #646970;"><?php _e('🔧 Estamos trabajando para integrar otros proveedores de imágenes próximamente.', SMARTNOTIFY_AI_TEXT_DOMAIN); ?></em>
+            </p>
+        </div>
+        <input type="hidden" name="smartnotify_image_provider" value="huggingface" />
         <?php
     }
 

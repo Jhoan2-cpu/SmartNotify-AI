@@ -434,6 +434,8 @@ body[class*="smartnotify"] {
 .smartnotify-guide-icon {
     width: 36px;
     height: 36px;
+    min-width: 36px;
+    min-height: 36px;
     border-radius: 50%;
     background: linear-gradient(135deg, #6366f1 0%, #a855f7 100%);
     color: white;
@@ -441,6 +443,9 @@ body[class*="smartnotify"] {
     align-items: center;
     justify-content: center;
     font-weight: 600;
+    font-size: 14px;
+    line-height: 1;
+    flex-shrink: 0;
     box-shadow: 0 10px 20px rgba(79, 70, 229, 0.3);
 }
 
