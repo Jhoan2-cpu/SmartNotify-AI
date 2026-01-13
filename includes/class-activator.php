@@ -106,10 +106,13 @@ class Activator {
             'edit_others_smartnotify_news',
             'publish_smartnotify_news',
             'read_smartnotify_news',
+            'read_private_smartnotify_news',
             'delete_smartnotify_news',
             'delete_others_smartnotify_news',
-            'edit_published_smartnotify_news',
+            'delete_private_smartnotify_news',
             'delete_published_smartnotify_news',
+            'edit_private_smartnotify_news',
+            'edit_published_smartnotify_news',
         ];
 
         if ($admin) {
