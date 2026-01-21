@@ -39,6 +39,7 @@ class NewsShortcode {
             'sentiment' => '',
             'order' => 'DESC',
             'orderby' => 'date',
+            'title' => '',
         ], $atts);
 
         // Build query arguments
@@ -86,6 +87,12 @@ class NewsShortcode {
             $columns_class = 'smartnotify-grid-' . intval($atts['columns']);
             ?>
             <div class="smartnotify-news-container">
+                <?php if (!empty($atts['title'])) : ?>
+                    <div class="smartnotify-section-header">
+                        <h2 class="smartnotify-section-title"><?php echo esc_html($atts['title']); ?></h2>
+                        <div class="smartnotify-section-divider"></div>
+                    </div>
+                <?php endif; ?>
                 <div class="smartnotify-news-grid <?php echo esc_attr($columns_class); ?>">
                     <?php while ($query->have_posts()) : $query->the_post(); ?>
                         <?php $this->renderCard(get_the_ID()); ?>

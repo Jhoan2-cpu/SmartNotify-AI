@@ -69,6 +69,9 @@ class AdminController {
         add_action('restrict_manage_posts', [$this, 'addFilters']);
         add_filter('parse_query', [$this, 'filterPosts']);
 
+        // Remove edit from bulk actions
+        add_filter('bulk_actions-edit-smartnotify_news', [$this, 'removeBulkEditAction']);
+
         // Add admin notices
         add_action('admin_notices', [$this, 'adminNotices']);
     }
@@ -126,6 +129,17 @@ class AdminController {
      */
     public function removeAddNewSubmenu() {
         remove_submenu_page('edit.php?post_type=smartnotify_news', 'post-new.php?post_type=smartnotify_news');
+    }
+
+    /**
+     * Remove edit from bulk actions
+     *
+     * @param array $actions Bulk actions
+     * @return array Modified actions
+     */
+    public function removeBulkEditAction($actions) {
+        unset($actions['edit']);
+        return $actions;
     }
 
     /**
